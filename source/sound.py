@@ -1,12 +1,11 @@
 import pygame
 
-
 class Sound:
     sounds = {}
 
     @staticmethod
     def initialize():
-        pygame.mixer.init(44100, 16, 2, 4096)
+        pygame.mixer.init(44100, 16, 4, 4096)
 
         # List of sounds to load
         sound_files = {
@@ -22,9 +21,11 @@ class Sound:
         for key, file_path in sound_files.items():
             Sound.sounds[key] = pygame.mixer.Sound(file_path)
 
+
     @staticmethod
     def quit():
         pygame.mixer.quit()
+
 
     @staticmethod
     def play(sound_name: str):
@@ -32,6 +33,7 @@ class Sound:
             Sound.sounds[sound_name].play()
         else:
             print(f"[PLAY] Sound '{sound_name}' not found!")
+
 
     @staticmethod
     def stop(sound_name: str):

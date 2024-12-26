@@ -6,6 +6,9 @@ __pycache__/
 # C extensions
 *.so
 
+# Saved Worlds, LOL
+*.dat
+
 # Distribution / packaging
 .Python
 build/

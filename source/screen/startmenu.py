@@ -7,7 +7,6 @@ import pygame
 from pygame import Font, Surface
 
 from source.screen.screen import Color
-from source.screen.shader import Shader
 from source.sound import Sound
 from source.utils.constants import *
 
@@ -19,8 +18,6 @@ class StartMenu:
     def __init__(self, world: World, font: Font) -> None:
         self.world = world
         self.font = font
-
-        self.filter = Shader().filter
 
         self.overlay = pygame.Surface(SCREEN_SIZE_T, pygame.SRCALPHA)
         self.overlay.fill((0, 0, 0, 255))
@@ -78,18 +75,18 @@ class StartMenu:
 
         # On init the title menu, we increase the
         # eleemtns opcity for an nice fade-in effect
-        if (self.menu_alpha < 255):
+        if self.menu_alpha < 255:
             self.overlay.set_alpha(255 - self.menu_alpha)
             self.menu_alpha += 1
 
-        if (self.title_alpha < 128):
+        if self.title_alpha < 128:
             self.title_alpha += 1
 
         # If the opcaity is full, we do a little
         # title fade-in / fade-on loop animation
         else:
             self.title_alpha += self.color_increment
-            if self.title_alpha in (250, 128):
+            if self.title_alpha in {250, 128}:
                 self.color_increment = -self.color_increment
 
         # Text input cursor blinking
@@ -102,7 +99,7 @@ class StartMenu:
                 pygame.key.stop_text_input()
                 pygame.quit()
 
-            elif event.type == pygame.TEXTINPUT :
+            elif event.type == pygame.TEXTINPUT:
                 if len(self.seed_input) < 32:
                     self.seed_input += event.text
                     Sound.play("typingSound")
@@ -133,7 +130,7 @@ class StartMenu:
         y = (16 * 7)
 
         for line in self.title_text:
-            title_surface = self.font.render(line, False, (0, self.title_alpha, self.title_alpha), 0).convert()
+            title_surface = self.font.render(line, False, (0, self.title_alpha, self.title_alpha), Color.BLACK).convert()
             title_rect = title_surface.get_rect(center = (SCREEN_HALF_W, y))
             sprites.append((title_surface, title_rect))
             y += self.line_height
@@ -152,6 +149,5 @@ class StartMenu:
         pygame.draw.rect(screen, Color.CYAN, self.seed_input_rect, 1)
 
         sprites.append((self.overlay, (0, 0)))
-        sprites.append((self.filter, (0, 0)))
 
         screen.fblits(sprites)

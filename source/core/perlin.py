@@ -1,12 +1,20 @@
 from math import floor
 from random import shuffle
 
+NOISE_SCALE: float = 0.0017
+
+""" More octaves, more detailed terrain """
+NOISE_OCTAVES: int = 8
+
+""" Controls the amplitude of each octave """
+NOISE_PERSISTENCE: float = 0.46
+
 
 class Perlin:
     """ My simple and fast "perlin noise" implementation :D """
 
     @staticmethod
-    def heightmap(p: list, x: float, y: float, persistence: float, octaves: int) -> float:
+    def heightmap(p: list, x: float, y: float) -> float:
         """
             Generates a Perlin noise height value
 
@@ -14,8 +22,6 @@ class Perlin:
                 p (list): The permutation list used for generating noise
                 x (float): The x-coordinate in the noise space
                 y (float): The y-coordinate in the noise space
-                persistence (float): Controls the amplitude of each octave
-                octaves (int): The number of octaves to compute
 
             Returns:
                 float: The Perlin noise value at the given coordinates
@@ -27,10 +33,10 @@ class Perlin:
         max_value: float = 0  # Used for normalizing result to 0.0 - 1.0
 
         # Sum the noise contributions for each octave
-        for _ in range(octaves):
+        for _ in range(NOISE_OCTAVES):
             total += Perlin.noise(p, x * frequency, y * frequency) * amplitude
             max_value += amplitude
-            amplitude *= persistence  # Reduce amplitude for subsequent octaves
+            amplitude *= NOISE_PERSISTENCE  # Reduce amplitude for subsequent octaves
             frequency *= 2.1  # Increase frequency for subsequent octaves (lacunarity)
 
         # Normalize the result to be within the range [-1, 1]
@@ -38,7 +44,7 @@ class Perlin:
 
 
     @staticmethod
-    def humidity(p: list, x: float, y: float, persistence: float, octaves: int) -> float:
+    def humidity(p: list, x: float, y: float) -> float:
         """
             Generates a Perlin noise height value for the humidity
 
@@ -46,8 +52,6 @@ class Perlin:
                 p (list): The permutation list used for generating noise
                 x (float): The x-coordinate in the noise space
                 y (float): The y-coordinate in the noise space
-                persistence (float): Controls the amplitude of each octave
-                octaves (int): The number of octaves to compute
 
             Returns:
                 float: The humidity value at the given coordinates
@@ -59,10 +63,10 @@ class Perlin:
         max_value: float = 0  # Used for normalizing the result
 
         # Sum the noise contributions for each octave
-        for _ in range(octaves):
+        for _ in range(NOISE_OCTAVES):
             total += Perlin.noise(p, x * frequency, y * frequency) * amplitude
             max_value += amplitude
-            amplitude *= persistence # Reduce amplitude for subsequent octaves
+            amplitude *= NOISE_PERSISTENCE # Reduce amplitude for subsequent octaves
             frequency *= 2.05 # Increase frequency for subsequent octaves (lacunarity)
 
         # Normalize the result to be within the range [-1, 1]
@@ -70,7 +74,7 @@ class Perlin:
 
 
     @staticmethod
-    def temperature(p: list, x: float, y: float, persistence: float, octaves: int) -> float:
+    def temperature(p: list, x: float, y: float) -> float:
         """
             Generates a Perlin noise height value for temeprature
 
@@ -78,8 +82,6 @@ class Perlin:
                 p (list): The permutation list used for generating noise
                 x (float): The x-coordinate in the noise space
                 y (float): The y-coordinate in the noise space
-                persistence (float): Controls the amplitude of each octave
-                octaves (int): The number of octaves to compute
 
             Returns:
                 float: The temperature value at the given coordinates
@@ -91,14 +93,14 @@ class Perlin:
         max_value: float = 0  # Used for normalizing the result
 
         # Sum the noise contributions for each octave
-        for _ in range(octaves):
+        for _ in range(NOISE_OCTAVES):
             total += Perlin.noise(p, x * frequency, y * frequency) * amplitude
             max_value += amplitude
-            amplitude *= persistence # Reduce amplitude for subsequent octaves
+            amplitude *= NOISE_PERSISTENCE # Reduce amplitude for subsequent octaves
             frequency *= 2.15  # Increase frequency for subsequent octaves (lacunarity)
 
         # Invert the normalized value and shift it to be within [0, 1]
-        return (1 - ((total / max_value) + 1) / 2)
+        return 1 - ((total / max_value) + 1) / 2
 
 
     @staticmethod

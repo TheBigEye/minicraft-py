@@ -18,10 +18,7 @@ from source.utils.updater import Updater
 
 
 def main() -> None:
-
-    font = pygame.font.Font("./assets/terrain.ttf", 16)
-
-    Game.initialize(font, tiles, mobs)
+    Game.initialize(tiles, mobs)
     Sound.initialize()
 
     player = Player()
@@ -34,8 +31,8 @@ def main() -> None:
         world.loaded = False
 
     clock = pygame.time.Clock()
-    title = StartMenu(world, font)
-    hotbar = Hotbar(player, font)
+    title = StartMenu(world, Game.font)
+    hotbar = Hotbar(player, Game.font)
     shader = Shader()
 
     # You might be wondering, why complicate things with a custom main loop when
@@ -58,10 +55,12 @@ def main() -> None:
 
     timer = time() * 1000
     delta = 0
-    ticks = 0
+    #ticks = 0
 
     running = True
     drawing = False
+
+    screen_time = time() * 1000
 
     while running:
         this_time = time_ns()
@@ -72,7 +71,7 @@ def main() -> None:
 
         # GAME LOGIC UPDATE
         while delta >= 1:
-            ticks += 1
+            #ticks += 1
 
             for _ in pygame.event.get(pygame.QUIT):
                 running = False
@@ -92,30 +91,38 @@ def main() -> None:
 
         # SCREEN UPDATE
         if drawing:
-            Game.screen.fill(0)
 
-            if (world.loaded):
-                world.render(Game.screen)
-                player.render(Game.screen)
-                hotbar.render(Game.screen)
-                shader.render(Game.screen)
+            screen_time = time() * 1000
+
+            if world.loaded:
+                world.render(Game.buffer)
+                hotbar.render(Game.buffer)
+                shader.render(Game.buffer)
             else:
-                title.render(Game.screen)
+                title.render(Game.buffer)
 
-            pygame.display.update()
+            shader.render(Game.buffer)
 
+            Game.screen.blit(Game.buffer, (0, 0))
+
+            pygame.display.flip()
+
+
+        screen_time = (time() * 1000) - screen_time
 
         # DEBUG ...
+
         if ((time() * 1000) - timer) > 1000:
-            #print(
+            print(
             #    f"> {clock.get_fps():.2f} FPS "
             #    f"/ {ticks} TPS "
             #    f"({world.ticks} daytime) "
             #    f"({world.daylight()} daylight)"
-            #)
+                f"> render time: {screen_time:.2f}ms"
+            )
 
             timer += 1000
-            ticks = 0
+            #ticks = 0
 
     Sound.quit()
     pygame.quit()

@@ -3,7 +3,7 @@ from __future__ import annotations
 from random import choice, randint
 from typing import TYPE_CHECKING
 
-from source.core.tile import fluids, tiles
+from source.core.tile import fluids
 from source.game import Game
 from source.sound import Sound
 from source.utils.constants import *
@@ -54,20 +54,23 @@ class Mob:
     def move(self, world: World) -> None:
         """ Move the mob in a random direction """
         if not self.can_move(world) or randint(0, 4) == 2:
-            self.facing = choice(directions)  # Change direction if blocked
+            # Change direction if blocked
+            self.facing = choice(directions)
         else:
-            offset_x, offset_y = offsets[self.facing]
-            self.x += offset_x
-            self.y += offset_y
+            xo, yo = offsets[self.facing]
+            self.x += xo
+            self.y += yo
 
 
     def can_move(self, world: World) -> bool:
         """ Check if the mob can move in its current direction """
-        offset_x, offset_y = offsets[self.facing]
-        xd, yd = self.x + offset_x, self.y + offset_y
+        xo, yo = offsets[self.facing]
+        xd = self.x + xo
+        yd = self.y + yo
         tile = world.get_tile(xd, yd)
 
         return tile.id not in fluids and not tile.solid
+
 
     def hurt(self, world: World, damage: int) -> None:
         """ Reduce the mob's health by a given amount """
@@ -75,7 +78,7 @@ class Mob:
 
         Sound.play("genericHurt")
 
-        if (self.health <= 0):
+        if self.health <= 0:
             world.despawn_mob(self.x, self.y)
 
 

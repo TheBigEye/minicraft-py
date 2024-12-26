@@ -1,15 +1,17 @@
 from __future__ import annotations
 
+import random
 from typing import TYPE_CHECKING
 
 import pygame
-from pygame import Surface
+from pygame import Rect, Surface, Vector2
 
 from source.core.tile import fluids
 from source.game import Game
 from source.screen.debug import Debug
 from source.sound import Sound
 from source.utils.constants import *
+from source.screen.sprites import Sprites
 
 if TYPE_CHECKING:
     from source.core.world import World
@@ -17,148 +19,162 @@ if TYPE_CHECKING:
 class Player:
 
     def __init__(self) -> None:
+        self.rect = Rect(
+            SCREEN_HALF_W - 12,
+            SCREEN_HALF_H - 12,
+            TILE_SIZE,
+            TILE_SIZE
+        )
+
         # Player's world coordinates
-        self.x: int = 0
-        self.y: int = 0
+        self.position: Vector2 = Vector2(0.0, 0.0)
+
+        # World grid offset (used by hitbox and tile highlight)
+        self.offset: Vector2 = Vector2(0.0, 0.0)
+
+        # The direction where the player is facing
+        self.facing: Vector2 = Vector2(0.0, 0.0)
 
         # Player's local chunk position
         self.cx: int = 0
         self.cy: int = 0
 
+        # Directions
+        self.xd: int = 0
+        self.yd: int = 0
+
         # Player max health, stamina and hunger
-        self.MAX_STAT: int = 20
+        self.MAX_STAT: int = 10
 
         self.health: int = self.MAX_STAT
         self.energy: int = self.MAX_STAT
         self.hunger: int = self.MAX_STAT
 
-        # The direction where the player is facing
-        self.facing: tuple = (0, 0)
         self.cursor: bool = False
         self.world: World = None
 
-        self.sprite = Game.sprite("☻", (000, 255, 255), 0)
+        self.sprite = Sprites.PLAYER[1][0]
+        self.speed: float = 0.10
 
 
-    def initialize(self, world: World, sx: int, sy: int) -> None:
+    def initialize(self, world: World, sx: float, sy: float) -> None:
         self.world = world
-        self.move(sx, sy)
+        self.position = Vector2(sx, sy)
 
 
     def swimming(self) -> bool:
         # Check if the player is swimming (in water)
-        return self.world.get_tile(self.x, self.y).id in fluids
+        return self.world.get_tile(int(self.position.x), int(self.position.y)).id in fluids
 
 
-    def move(self, mx, my) -> None:
-        """ Move the player"""
+    def move(self, mx: float, my: float) -> None:
+        """ Move the player using vectors """
+        target = Vector2(mx, my)
 
-        # Get the diff
-        fx = mx - self.x
-        fy = my - self.y
+        # Calcular el vector de movimiento
+        movement_vector = target - self.position
+        if movement_vector.length() > 0:
+            movement_vector = movement_vector.normalize() * self.speed
 
-        if not self.world.get_tile(mx, my).solid:
-            self.x = mx
-            self.y = my
+        # Nueva posición del jugador
+        new_position = self.position + movement_vector
 
-        # Set the facing direction based on movement
-        if fx != 0:
-            self.facing = (self.x + fx, self.y)
-        elif fy != 0:
-            self.facing = (self.x, self.y + fy)
+        # Comprobar colisión en la nueva posición
+        tile = self.world.get_tile(int(new_position.x), int(new_position.y))
+
+        if not tile.solid:
+            self.position = new_position
+        else:
+            # Comprobar colisión con el rectángulo del tile
+            tile_rect = Rect((new_position.x * TILE_SIZE), (new_position.x * TILE_SIZE), TILE_SIZE, TILE_SIZE)
+            if self.rect.colliderect(tile_rect):
+                return
+
+        self.offset.x = (self.position.x - int(self.position.x)) * TILE_SIZE
+        self.offset.y = (self.position.y - int(self.position.y)) * TILE_SIZE
+
+        self.rect = Rect(
+            SCREEN_HALF_W - self.offset.x,
+            SCREEN_HALF_H - self.offset.y,
+            TILE_SIZE,
+            TILE_SIZE
+        )
+
+        # Establecer la dirección en la que está mirando
+        if movement_vector.length() > 0:
+            self.facing = movement_vector.normalize()
+
+        self.xd = int(self.position.x + self.facing.x)
+        self.yd = int(self.position.y + self.facing.y)
+
+        # Update the player local chunk position
+        self.cx = int(self.position.x) // CHUNK_SIZE
+        self.cy = int(self.position.y) // CHUNK_SIZE
 
 
     def attack(self) -> None:
         """ Break the tile in the specified direction """
-
         if self.energy < int(0.32 * self.MAX_STAT):
             return
-
-        xd = self.facing[0]
-        yd = self.facing[1]
 
         self.energy = max(0, self.energy - int(0.32 * self.MAX_STAT))
 
         for mob in self.world.entities:
-            if (mob.x == xd) and (mob.y == yd):
+            if (int(mob.x) == self.xd) and (int(mob.y) == self.yd):
                 mob.hurt(self.world, 8)
                 return
 
-        tile = self.world.get_tile(xd, yd)
-        tile.hurt(self.world, xd, yd, 8)
+        tile = self.world.get_tile(self.xd, self.yd)
+        tile.hurt(self.world, self.xd, self.yd, random.randint(1, 3))
 
 
-    def render(self, screen: Surface) -> None:
-        # Create a list to hold all the blits
+    def render(self, screen: Surface) -> list:
+        # Create a list to hold all the pygame blits
         sprites: list = []
 
         # Highlight the front tile
         if self.cursor:
-            # NOTE: Pygame blit will fail if the player are in
-            # extremes distances from the world spawn point!
+            highlight = Vector2(
+                SCREEN_HALF_W, SCREEN_HALF_H
+            ) + Vector2(
+                self.xd - int(self.position.x), self.yd - int(self.position.y)
+            ) * TILE_SIZE
 
-            xd = self.facing[0]
-            yd = self.facing[1]
+            highlight -= self.offset
 
-            # Calculate the screen coordinates of the tile in front of the player
-            facing_tile = (
-                SCREEN_HALF_W + ((xd - self.x) * TILE_SIZE),
-                SCREEN_HALF_H + ((yd - self.y) * TILE_SIZE)
-            )
+            sprites.append((Sprites.HIGHLIGHT, (highlight.x, highlight.y)))
 
-            highlight = self.world.get_tile(xd, yd).sprite.copy()
-            highlight.fill((16, 16, 16), None, pygame.BLEND_RGB_ADD)
-            sprites.append((highlight, facing_tile))
+            # We add the player light overlay
+            Game.darkness.blit(Game.overlay, ((SCREEN_HALF_W - 96), (SCREEN_HALF_H - 92) - 16), special_flags=pygame.BLEND_RGBA_SUB)
+            Game.darkness.set_alpha(255 - self.world.daylight())
 
-        sx = SCREEN_HALF_W + 4
-        sy = SCREEN_HALF_H
+        # BUG BUG HERE: this fix temporaly the player's hitbox and sprite problem on negative coords
+        xo = TILE_SIZE if self.position.x < 0 else 0
+        yo = TILE_SIZE if self.position.y < 0 else 0
 
-        # Then we draw the player at the center of the screen
-        sprites.append((self.sprite, (sx, sy)))
-
-        # We add the player light overlay
-        Game.darkness.blit(Game.overlay, (sx - 96, sy - 92), special_flags=pygame.BLEND_RGBA_SUB)
-        Game.darkness.set_alpha(255 - self.world.daylight())
-
-        sprites.append((Game.darkness, (0, 0)))
-
-        # Use fblits to draw all the surfaces at once
-        screen.fblits(sprites)
-
-        if Game.debug:
-            Debug.render(
-                screen,
-                self.world.chunks,
-                self.x, self.y,
-                self.cx, self.cy
-            )
-
+        ry = (SCREEN_HALF_H + yo) - 24
+        sprites.append((self.sprite, ((SCREEN_HALF_W + xo) - 15, ry, ry)))
+        
+        return sprites
 
     def update(self, ticks: int) -> None:
-        # This function gets called every frame, hence we can use it to
-        # decrease or regenerate the stamina or the health of the player
 
-        self.cx = self.x // CHUNK_SIZE
-        self.cy = self.y // CHUNK_SIZE
-
-        if (ticks % 15 == 0):
-            # Decrease stamina if we are swiming
+        if ticks % 15 == 0:
+            # Decrease stamina if we are swimming
             if (self.energy > 0) and self.swimming():
                 self.energy = max(0, self.energy - 1)
 
             # Increase health if stamina is higher than half
-            if (self.energy > 10):
+            if self.energy > (self.MAX_STAT // 2):
                 self.health = min(self.MAX_STAT, self.health + 1)
-
-            self.cursor = not self.cursor
-
 
         if (ticks % 30 == 0) and (self.energy < 1):
             if self.swimming():
                 self.health = max(0, self.health - 1)
                 Sound.play("playerHurt")
 
+        if (ticks % 4 == 0) :
+            self.cursor = not self.cursor
 
-        if (ticks % 3 == 0) and (self.energy < self.MAX_STAT):
-            if not self.swimming():
+            if not self.swimming() and (self.energy < self.MAX_STAT):
                 self.energy = min(self.MAX_STAT, self.energy + 1)
