@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, Dict, Tuple, Set
+from typing import TYPE_CHECKING, Dict, List, Set, Tuple
 
 import pygame
+from pygame.surface import Surface
 
 from source.utils.constants import *
 
@@ -11,7 +12,7 @@ if TYPE_CHECKING:
     from source.core.world import World
 
 @staticmethod
-def get_sprite(atlas: pygame.Surface, x: int, y: int, step: int, scale: int) -> pygame.Surface:
+def get_sprite(atlas, x, y, step, scale): # type: (Surface, int, int, int, int) -> Surface
     """Extract and scale a sprite from the atlas."""
     return pygame.transform.scale(
         atlas.subsurface((x * step, y * step, step, step)), (scale, scale)
@@ -181,13 +182,13 @@ class Sprites:
             cls.transition_sprites[f"{b}_{a}"] = transition_data
 
     @classmethod
-    def get_bitmask(cls, world: World, x: int, y: int, neighbor_id: int) -> int:
+    def get_bitmask(cls, world, x, y, neighbor_id): # type: (World, int, int, int) -> int
         """Calculate the bitmask for terrain transitions."""
         return sum(direction for dx, dy, direction in cls.DIRECTIONS
                   if world.get_tile(x + dx, y + dy).id == neighbor_id)
 
     @classmethod
-    def get_connector(cls, world: World, tile: Tile, tiles: dict, x: int, y: int) -> List[Tuple]:
+    def get_connector(cls, world, tile, tiles, x, y): # type: (World, Tile, dict, int, int) -> list[tuple]
         """Get all connectors for a tile including corners and edges."""
         connectors = []
 

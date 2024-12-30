@@ -21,7 +21,7 @@ class Shader:
         #for _ in range(1000):  # Noise points
         #    pygame.draw.circle(self.filter, (16, 16, 16, randint(50, 150)), (randint(0, SCREEN_SIZE_T[0]), randint(0, SCREEN_SIZE_T[1])), 1)
 
-        self.filter.set_alpha(96)
+        self.filter.set_alpha(96, pygame.RLEACCEL)
 
 
     def render(self, screen: Surface) -> None:

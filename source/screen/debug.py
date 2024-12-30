@@ -3,12 +3,14 @@ from pygame import Surface
 
 from source.screen.screen import Color
 from source.utils.constants import *
-from source.game import Game  # Add this import
+from source.game import Game
+from source.utils.region import Region  # Add this import
 
 
 class Debug:
     # Cache chunk size in pixels
     CHUNK_PIXELS = CHUNK_SIZE * TILE_SIZE
+    REGION_PIXELS = CHUNK_PIXELS * Region.REGION_SIZE
 
     @staticmethod
     def render(screen: Surface, chunks: dict, px: float, py: float, cx: int, cy: int) -> None:
@@ -53,16 +55,16 @@ class Debug:
                 chunk_rect = pygame.Rect(xr, yr, Debug.CHUNK_PIXELS, Debug.CHUNK_PIXELS)
 
                 # Determine color based on chunk status
-                color = (Color.MAGENTA if chunk_pos == current_chunk else
+                color = (Color.DARK_GREY if chunk_pos == current_chunk else
                         Color.RED if not all_neighbors_generated else
                         Color.GREEN)
 
                 # Draw rectangles using integer coordinates
                 pygame.draw.rect(screen, color, chunk_rect, 2)
-                pygame.draw.rect(screen, Color.BLACK, chunk_rect.inflate(-2, -2), 1)
+                pygame.draw.rect(screen, color, chunk_rect.inflate(-2, -2), 1)
 
                 # Render chunk coordinates
-                coord_text = f"{xc},{yc}"
+                coord_text = f"C: {xc},{yc}"
                 text_surface = Game.font.render(coord_text, False, Color.WHITE)
                 text_rect = text_surface.get_rect()
 
@@ -73,3 +75,31 @@ class Debug:
                 # Position text in top-left corner with small padding
                 screen.blit(background, (xr + 2, yr + 2))
                 screen.blit(text_surface, (xr + 4, yr + 2))
+
+                # Add region label under chunk label
+                rx_current, ry_current = xc // Region.REGION_SIZE, yc // Region.REGION_SIZE
+                region_text = f"R: {rx_current},{ry_current}"
+                text_surface = Game.font.render(region_text, False, Color.WHITE)
+                text_rect = text_surface.get_rect()
+
+                # Create background for region text
+                background = pygame.Surface((text_rect.width + 4, text_rect.height + 2))
+                background.fill(Color.BLACK)
+
+                # Position region text below chunk label
+                screen.blit(background, (xr + 2, yr + 20))
+                screen.blit(text_surface, (xr + 4, yr + 20))
+
+
+        # Draw current region boundary only
+        current_rx, current_ry = cx // Region.REGION_SIZE, cy // Region.REGION_SIZE
+
+        region_rect = pygame.Rect(
+            xo + (current_rx * Debug.REGION_PIXELS) - (cx * Debug.CHUNK_PIXELS),
+            yo + (current_ry * Debug.REGION_PIXELS) - (cy * Debug.CHUNK_PIXELS),
+            Debug.REGION_PIXELS,
+            Debug.REGION_PIXELS
+        )
+
+        pygame.draw.rect(screen, Color.RED, region_rect, 4)
+        pygame.draw.rect(screen, Color.DARK_RED, region_rect.inflate(-4, -4), 2)

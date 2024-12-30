@@ -17,8 +17,7 @@ if TYPE_CHECKING:
     from source.core.world import World
 
 class Player:
-
-    def __init__(self) -> None:
+    def __init__(self): # type: () -> None
         self.rect = Rect(
             SCREEN_HALF_W - 12,
             SCREEN_HALF_H - 12,
@@ -57,17 +56,17 @@ class Player:
         self.speed: float = 0.10
 
 
-    def initialize(self, world: World, sx: float, sy: float) -> None:
+    def initialize(self, world, sx, sy): # type: (World, float, float) -> None
         self.world = world
         self.position = Vector2(sx, sy)
 
 
-    def swimming(self) -> bool:
+    def swimming(self): # type: () -> bool
         # Check if the player is swimming (in water)
         return self.world.get_tile(int(self.position.x), int(self.position.y)).id in fluids
 
 
-    def move(self, mx: float, my: float) -> None:
+    def move(self, mx, my): # type: (float, float) -> None
         """ Move the player using vectors """
         target = Vector2(mx, my)
 
@@ -112,7 +111,7 @@ class Player:
         self.cy = int(self.position.y) // CHUNK_SIZE
 
 
-    def attack(self) -> None:
+    def attack(self): # type: () -> None
         """ Break the tile in the specified direction """
         if self.energy < int(0.32 * self.MAX_STAT):
             return
@@ -128,7 +127,8 @@ class Player:
         tile.hurt(self.world, self.xd, self.yd, random.randint(1, 3))
 
 
-    def render(self, screen: Surface) -> list:
+    def render(self, screen): # type: (Surface) -> list[tuple[Surface, tuple]]
+
         # Create a list to hold all the pygame blits
         sprites: list = []
 
@@ -154,10 +154,10 @@ class Player:
 
         ry = (SCREEN_HALF_H + yo) - 24
         sprites.append((self.sprite, ((SCREEN_HALF_W + xo) - 15, ry, ry)))
-        
+
         return sprites
 
-    def update(self, ticks: int) -> None:
+    def update(self, ticks): # type: (int) -> None
 
         if ticks % 15 == 0:
             # Decrease stamina if we are swimming

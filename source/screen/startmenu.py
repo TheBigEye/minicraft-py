@@ -74,19 +74,22 @@ class StartMenu:
             self.initialized = True
 
         # On init the title menu, we increase the
-        # eleemtns opcity for an nice fade-in effect
+        # elements opacity for a nice fade-in effect
         if self.menu_alpha < 255:
-            self.overlay.set_alpha(255 - self.menu_alpha)
-            self.menu_alpha += 1
+            self.overlay.set_alpha(255 - self.menu_alpha, pygame.RLEACCEL)
+            self.menu_alpha += 3
 
         if self.title_alpha < 128:
             self.title_alpha += 1
 
-        # If the opcaity is full, we do a little
+        if (self.menu_alpha > 255):
+            self.overlay = None
+
+        # If the opacity is full, we do a little
         # title fade-in / fade-on loop animation
         else:
-            self.title_alpha += self.color_increment
-            if self.title_alpha in {250, 128}:
+            self.title_alpha = min(max(self.title_alpha + self.color_increment, 0), 255)
+            if self.title_alpha >= 250 or self.title_alpha <= 128:
                 self.color_increment = -self.color_increment
 
         # Text input cursor blinking
@@ -130,7 +133,13 @@ class StartMenu:
         y = (16 * 7)
 
         for line in self.title_text:
-            title_surface = self.font.render(line, False, (0, self.title_alpha, self.title_alpha), Color.BLACK).convert()
+            title_surface = self.font.render(
+                line,
+                False,
+                (0, min(self.title_alpha, 255), min(self.title_alpha, 255)),
+                Color.BLACK
+            ).convert()
+
             title_rect = title_surface.get_rect(center = (SCREEN_HALF_W, y))
             sprites.append((title_surface, title_rect))
             y += self.line_height
@@ -148,6 +157,7 @@ class StartMenu:
 
         pygame.draw.rect(screen, Color.CYAN, self.seed_input_rect, 1)
 
-        sprites.append((self.overlay, (0, 0)))
+        if self.overlay:
+            sprites.append((self.overlay, (0, 0)))
 
         screen.fblits(sprites)

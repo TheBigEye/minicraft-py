@@ -9,6 +9,7 @@ from source.core.tile import tiles
 from source.core.world import World
 from source.game import Game
 from source.screen.hotbar import Hotbar
+from source.screen.screen import Color
 from source.screen.shader import Shader
 from source.screen.startmenu import StartMenu
 from source.sound import Sound
@@ -91,8 +92,9 @@ def main() -> None:
 
         # SCREEN UPDATE
         if drawing:
-
             screen_time = time() * 1000
+
+            Game.buffer.fill(Color.BLACK)
 
             if world.loaded:
                 world.render(Game.buffer)
@@ -101,7 +103,7 @@ def main() -> None:
             else:
                 title.render(Game.buffer)
 
-            shader.render(Game.buffer)
+            #shader.render(Game.buffer)
 
             Game.screen.blit(Game.buffer, (0, 0))
 
@@ -123,6 +125,10 @@ def main() -> None:
 
             timer += 1000
             #ticks = 0
+
+    # This prevents corrupted save files in case the game is closed
+    if world.loaded:
+        Saveload.save(updater, world, player)
 
     Sound.quit()
     pygame.quit()

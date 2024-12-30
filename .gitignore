@@ -8,6 +8,7 @@ __pycache__/
 
 # Saved Worlds, LOL
 *.dat
+*.mcr
 
 # Distribution / packaging
 .Python

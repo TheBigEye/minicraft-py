@@ -32,7 +32,7 @@ class Tile:
     )
 
 
-    def __init__(self, id: int, sprites: list[Surface], solid: bool, parent: int, health: int) -> None:
+    def __init__(self, id: int, sprites: list[Surface], solid: bool, parent: int | None, health: int | None) -> None:
         self.id = id
         self.solid = solid
         self.parent = parent
@@ -74,7 +74,7 @@ class Tile:
 
     def clone(self) -> Tile:
         """ Returns a copy of the tile instance """
-        return Tile(self.id, self.sprites, self.solid, self.parent, self.health)
+        return self.__class__(self.id, self.sprites, self.solid, self.parent, self.health)
 
 
 tiles = {

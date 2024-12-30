@@ -11,3 +11,5 @@ class Color:
     CYAN: tuple      = (000, 255, 255)
     YELLOW: tuple    = (255, 255, 000)
     MAGENTA: tuple   = (255, 000, 255)
+    DARK_RED: tuple  = (128, 000, 000)
+    DARK_GREEN: tuple= (000, 128, 000)

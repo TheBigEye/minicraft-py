@@ -1,4 +1,5 @@
 from __future__ import annotations
+import os
 import pickle
 import struct
 import array
@@ -8,6 +9,7 @@ from source.core.mob import mobs
 from source.core.tile import tiles
 from source.game import Game
 from source.sound import Sound
+from source.utils.region import Region
 
 if TYPE_CHECKING:
     from source.core.player import Player
@@ -36,14 +38,14 @@ class TinyBinaryTag:
     """
 
     @staticmethod
-    def write_string(file: BinaryIO, string: str) -> None:
+    def write_string(file, string): # type: (BinaryIO, str) -> None
         """ Write a UTF-8 encoded string with length prefix """
         encoded = string.encode('utf-8')
         file.write(struct.pack('!H', len(encoded)))
         file.write(encoded)
 
     @staticmethod
-    def read_string(file: BinaryIO) -> str:
+    def read_string(file): # type: (BinaryIO) -> str
         """ Read a UTF-8 encoded string with length prefix """
         length = struct.unpack('!H', file.read(2))[0]
         return file.read(length).decode('utf-8')
@@ -74,7 +76,7 @@ class TinyBinaryTag:
         return struct.unpack(f'!{fmt}', file.read(size))[0]
 
     @staticmethod
-    def write_array(file: BinaryIO, values: Union[List[int], List[float]], typecode: str) -> None:
+    def write_array(file, values, typecode): # type: (BinaryIO, list[int | float], str) -> None
         """Write an array of numbers (integers or floats).
 
         Args:
@@ -87,7 +89,7 @@ class TinyBinaryTag:
         arr.tofile(file)
 
     @staticmethod
-    def read_array(file: BinaryIO, typecode: str) -> Union[List[int], List[float]]:
+    def read_array(file, typecode): # type: (BinaryIO, str) -> list[int | float]
         """Read an array of numbers (integers or floats).
 
         Args:
@@ -100,7 +102,7 @@ class TinyBinaryTag:
         return arr.tolist()
 
     @staticmethod
-    def write_compound(file: BinaryIO, data: Dict) -> None:
+    def write_compound(file, data): # type: (BinaryIO, dict) -> None
         """Write a compound (dictionary) using pickle protocol 4.
 
         This method is used for complex nested structures that don't need
@@ -109,7 +111,7 @@ class TinyBinaryTag:
         pickle.dump(data, file, protocol=4)
 
     @staticmethod
-    def read_compound(file: BinaryIO) -> Dict:
+    def read_compound(file): # type: (BinaryIO) -> dict
         """Read a compound (dictionary) using pickle."""
         return pickle.load(file)
 
@@ -117,105 +119,97 @@ class TinyBinaryTag:
 
 class Saveload:
     @staticmethod
-    def save(updater: Updater, world: World, player: Player) -> None:
-        # Convert chunks to ID-based format
-        chunks = {
-            chunk: [[tile.id for tile in row] for row in data]
-            for chunk, data in world.chunks.items()
-        }
+    def save(updater, world, player): # type: (Updater, World, Player) -> None
+        """Save the game state."""
+        os.makedirs('./saves', exist_ok=True)
 
-        # Pack entities data
-        entities = [
-            {'id': mob.id, 'x': mob.x, 'y': mob.y}
-            for mob in world.entities
-        ]
-
-        # Create data sections
-        header = {
-            'version': 1,
-            'name': "A Nice World",
-            'seed': world.seed,
-            'perm': world.perm,
-            'spawn': (world.sx, world.sy),
-            'ticks': updater.ticks
-        }
-
-        player_data = {
-            'x': player.position.x, 'y': player.position.y,
-            'cx': player.cx, 'cy': player.cy,
-            'xo': player.offset.x, 'yo': player.offset.y,
-            'xd': player.xd, 'yd': player.yd,
-            'fx': player.facing.x, 'fy': player.facing.y,
-            'health': player.health, 'energy': player.energy
-        }
-
-        world_data = {
-            'chunks': chunks,
-            'entities': entities
-        }
-
-        # Write everything in binary format
-        with open('./saves/world.dat', 'wb') as file:
+        # Save world metadata
+        with open('./saves/level.dat', 'wb') as f:
             # Write magic number and version
-            file.write(b'MCPY')
-            file.write(struct.pack('!B', 1))  # Version 1
+            f.write(b'MCPY')
+            f.write(struct.pack('!B', 1))  # Version 1
 
-            # Write each section
-            TinyBinaryTag.write_compound(file, header)
-            TinyBinaryTag.write_compound(file, player_data)
-            TinyBinaryTag.write_compound(file, world_data)
+            # Save header data
+            header = {
+                'seed': world.seed,
+                'perm': world.perm,
+                'spawn': (world.sx, world.sy),
+                'ticks': updater.ticks
+            }
+            pickle.dump(header, f)
+
+            # Save player data
+            player_data = {
+                'x': player.position.x,
+                'y': player.position.y,
+                'xo': player.offset.x,
+                'yo': player.offset.y,
+                'xd': player.xd,
+                'yd': player.yd,
+                'fx': player.facing.x,
+                'fy': player.facing.y,
+                'health': player.health,
+                'energy': player.energy
+            }
+            pickle.dump(player_data, f)
+
+            # Save entities
+            entities = [
+                {'id': mob.id, 'x': mob.x, 'y': mob.y}
+                for mob in world.entities
+            ]
+            pickle.dump(entities, f)
+
+        # Save modified chunks to their region files
+        for (cx, cy), chunk in world.chunks.items():
+            if chunk.modified:
+                rx, ry, lcx, lcy = Region.get_region(cx, cy)
+                region = Region('./saves', rx, ry)
+
+                data = {
+                    'tiles': chunk.get_tiles()
+                }
+
+                region.write_chunk(lcx, lcy, data)
+                chunk.modified = False
 
     @staticmethod
-    def load(updater: Updater, world: World, player: Player) -> None:
-        with open('./saves/world.dat', 'rb') as file:
+    def load(updater, world, player): # type: (Updater, World, Player) -> None
+        """Load the game state."""
+        with open('./saves/level.dat', 'rb') as f:
             # Verify magic number and version
-            magic = file.read(4)
-            if magic != b'MCPY':
+            if f.read(4) != b'MCPY':
                 raise ValueError("Invalid save file format")
 
-            version = struct.unpack('!B', file.read(1))[0]
-            if version != 1:
-                raise ValueError(f"Unsupported save version: {version}")
+            if struct.unpack('!B', f.read(1))[0] != 1:
+                raise ValueError("Unsupported save version")
 
-            # Read sections
-            header = TinyBinaryTag.read_compound(file)
-            player_data = TinyBinaryTag.read_compound(file)
-            world_data = TinyBinaryTag.read_compound(file)
+            # Load header data
+            header = pickle.load(f)
+            world.seed = header['seed']
+            world.perm = header['perm']
+            world.sx, world.sy = header['spawn']
+            updater.ticks = header['ticks']
 
-        # Update player state
-        player.position.x = float(player_data['x'])
-        player.position.y = float(player_data['y'])
-        player.cx = player_data['cx']
-        player.cy = player_data['cy']
-        player.offset.x = float(player_data['xo'])
-        player.offset.y = float(player_data['yo'])
-        player.xd = player_data['xd']
-        player.yd = player_data['yd']
-        player.facing.x = float(player_data['fx'])
-        player.facing.y = float(player_data['fy'])
-        player.health = player_data['health']
-        player.energy = player_data['energy']
+            # Load player data
+            player_data = pickle.load(f)
+            player.position.x = float(player_data['x'])
+            player.position.y = float(player_data['y'])
+            player.offset.x = float(player_data['xo'])
+            player.offset.y = float(player_data['yo'])
+            player.xd = player_data['xd']
+            player.yd = player_data['yd']
+            player.facing.x = float(player_data['fx'])
+            player.facing.y = float(player_data['fy'])
+            player.health = player_data['health']
+            player.energy = player_data['energy']
 
-        # Update world state
-        world.seed = header['seed']
-        world.perm = header['perm']
-        world.sx = float(header['spawn'][0])
-        world.sy = float(header['spawn'][1])
-        updater.ticks = header['ticks']
-
-        # Rebuild chunks
-        chunks = world_data['chunks']
-        world.chunks = {
-            chunk: [[tiles[Game.tile[id]].clone() for id in row] for row in data]
-            for chunk, data in chunks.items()
-        }
-
-        # Rebuild entities
-        entities = world_data['entities']
-        world.entities = [mobs[Game.mobs[data['id']]].clone() for data in entities]
-        for mob, data in zip(world.entities, entities):
-            mob.x = data['x']
-            mob.y = data['y']
+            # Load entities
+            entities = pickle.load(f)
+            world.entities = [mobs[Game.mobs[data['id']]].clone() for data in entities]
+            for mob, data in zip(world.entities, entities):
+                mob.x = data['x']
+                mob.y = data['y']
 
         Sound.play("eventSound")
         player.initialize(world, player.position.x, player.position.y)
