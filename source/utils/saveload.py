@@ -1,13 +1,12 @@
 from __future__ import annotations
+
 import os
 import pickle
 import struct
 import array
-from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Union, BinaryIO
 
-from source.core.mob import mobs
-from source.core.tile import tiles
-from source.game import Game
+from typing import TYPE_CHECKING, BinaryIO
+
 from source.sound import Sound
 from source.utils.region import Region
 
@@ -15,6 +14,7 @@ if TYPE_CHECKING:
     from source.core.player import Player
     from source.core.world import World
     from source.utils.updater import Updater
+
 
 class TinyBinaryTag:
     """ (TBT) A tiny binary format for game save data serialization.
@@ -153,13 +153,6 @@ class Saveload:
             }
             pickle.dump(player_data, f)
 
-            # Save entities
-            entities = [
-                {'id': mob.id, 'x': mob.x, 'y': mob.y}
-                for mob in world.entities
-            ]
-            pickle.dump(entities, f)
-
         # Save modified chunks to their region files
         for (cx, cy), chunk in world.chunks.items():
             if chunk.modified:
@@ -203,13 +196,6 @@ class Saveload:
             player.facing.y = float(player_data['fy'])
             player.health = player_data['health']
             player.energy = player_data['energy']
-
-            # Load entities
-            entities = pickle.load(f)
-            world.entities = [mobs[Game.mobs[data['id']]].clone() for data in entities]
-            for mob, data in zip(world.entities, entities):
-                mob.x = data['x']
-                mob.y = data['y']
 
         Sound.play("eventSound")
         player.initialize(world, player.position.x, player.position.y)

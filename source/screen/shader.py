@@ -1,12 +1,11 @@
 import pygame
 from pygame import Surface
 
-from source.utils.constants import *
-
+from source.utils.constants import SCREEN_SIZE_T
 
 class Shader:
     def __init__(self) -> None:
-        self.filter = pygame.Surface(SCREEN_SIZE_T, pygame.SRCALPHA)
+        self.filter = pygame.Surface(SCREEN_SIZE_T, pygame.SRCALPHA, 32).convert_alpha()
         self.filter.fill((16, 16, 16, 255))
 
         # Add horizontal scanlines

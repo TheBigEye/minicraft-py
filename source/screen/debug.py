@@ -2,9 +2,15 @@ import pygame
 from pygame import Surface
 
 from source.screen.screen import Color
-from source.utils.constants import *
+
+from source.utils.constants import (
+    CHUNK_SIZE, TILE_SIZE,
+    RENDER_RANGE_H, RENDER_RANGE_V,
+    SCREEN_HALF_W, SCREEN_HALF_H
+)
+
 from source.game import Game
-from source.utils.region import Region  # Add this import
+from source.utils.region import Region
 
 
 class Debug:
@@ -65,11 +71,11 @@ class Debug:
 
                 # Render chunk coordinates
                 coord_text = f"C: {xc},{yc}"
-                text_surface = Game.font.render(coord_text, False, Color.WHITE)
+                text_surface = Game.font.render(coord_text, False, Color.WHITE).convert()
                 text_rect = text_surface.get_rect()
 
                 # Create background for text
-                background = pygame.Surface((text_rect.width + 4, text_rect.height + 2))
+                background = pygame.Surface((text_rect.width + 4, text_rect.height + 2)).convert()
                 background.fill(Color.BLACK)
 
                 # Position text in top-left corner with small padding
@@ -79,11 +85,11 @@ class Debug:
                 # Add region label under chunk label
                 rx_current, ry_current = xc // Region.REGION_SIZE, yc // Region.REGION_SIZE
                 region_text = f"R: {rx_current},{ry_current}"
-                text_surface = Game.font.render(region_text, False, Color.WHITE)
+                text_surface = Game.font.render(region_text, False, Color.WHITE).convert()
                 text_rect = text_surface.get_rect()
 
                 # Create background for region text
-                background = pygame.Surface((text_rect.width + 4, text_rect.height + 2))
+                background = pygame.Surface((text_rect.width + 4, text_rect.height + 2)).convert()
                 background.fill(Color.BLACK)
 
                 # Position region text below chunk label

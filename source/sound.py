@@ -1,11 +1,11 @@
-import pygame
+from pygame import mixer
 
 class Sound:
     sounds = {}
 
     @staticmethod
     def initialize():
-        pygame.mixer.init(44100, 16, 4, 4096)
+        mixer.init(44100, 16, 4, 4096)
 
         # List of sounds to load
         sound_files = {
@@ -19,12 +19,12 @@ class Sound:
 
         # Load all sounds into the dictionary
         for key, file_path in sound_files.items():
-            Sound.sounds[key] = pygame.mixer.Sound(file_path)
+            Sound.sounds[key] = mixer.Sound(file_path)
 
 
     @staticmethod
     def quit():
-        pygame.mixer.quit()
+        mixer.quit()
 
 
     @staticmethod

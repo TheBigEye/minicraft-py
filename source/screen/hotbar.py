@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from pygame import Font, Surface
 
 from source.screen.screen import Color
-from source.utils.constants import *
+from source.utils.constants import SCREEN_HALF_W, SCREEN_FULL_H
 from source.screen.sprites import Sprites
 
 if TYPE_CHECKING:

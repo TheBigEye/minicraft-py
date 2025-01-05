@@ -1,25 +1,27 @@
-
 from time import time, time_ns
 
 import pygame
+from pygame import display, event, QUIT
 
-from source.core.mob import mobs
-from source.core.player import Player
-from source.core.tile import tiles
-from source.core.world import World
 from source.game import Game
+from source.sound import Sound
+
+from source.core.player import Player
+from source.core.world import World
+
 from source.screen.hotbar import Hotbar
 from source.screen.screen import Color
 from source.screen.shader import Shader
 from source.screen.startmenu import StartMenu
-from source.sound import Sound
-from source.utils.constants import *
+from source.screen.tilemap import Tilemap
+
 from source.utils.saveload import Saveload
 from source.utils.updater import Updater
+from source.utils.constants import GAME_TICKS
 
 
 def main() -> None:
-    Game.initialize(tiles, mobs)
+    Game.initialize()
     Sound.initialize()
 
     player = Player()
@@ -61,7 +63,9 @@ def main() -> None:
     running = True
     drawing = False
 
-    screen_time = time() * 1000
+    # Only calculate render time if Game.debug is True
+    screen_time = 0.0
+    last_screen_time = 0.0
 
     while running:
         this_time = time_ns()
@@ -74,7 +78,7 @@ def main() -> None:
         while delta >= 1:
             #ticks += 1
 
-            for _ in pygame.event.get(pygame.QUIT):
+            for _ in event.get(QUIT):
                 running = False
 
             if world.loaded:
@@ -92,46 +96,38 @@ def main() -> None:
 
         # SCREEN UPDATE
         if drawing:
-            screen_time = time() * 1000
+            if Game.debug:
+                screen_time = time() * 1000
 
             Game.buffer.fill(Color.BLACK)
 
             if world.loaded:
                 world.render(Game.buffer)
                 hotbar.render(Game.buffer)
-                shader.render(Game.buffer)
             else:
                 title.render(Game.buffer)
 
-            #shader.render(Game.buffer)
+            shader.render(Game.buffer)
 
             Game.screen.blit(Game.buffer, (0, 0))
+            display.flip()
 
-            pygame.display.flip()
-
-
-        screen_time = (time() * 1000) - screen_time
+            if Game.debug:
+                last_screen_time = (time() * 1000) - screen_time
 
         # DEBUG ...
-
         if ((time() * 1000) - timer) > 1000:
-            print(
-            #    f"> {clock.get_fps():.2f} FPS "
-            #    f"/ {ticks} TPS "
-            #    f"({world.ticks} daytime) "
-            #    f"({world.daylight()} daylight)"
-                f"> render time: {screen_time:.2f}ms"
-            )
+            if Game.debug:
+                print(f"> render time: {last_screen_time:.2f}ms")
 
             timer += 1000
-            #ticks = 0
 
     # This prevents corrupted save files in case the game is closed
     if world.loaded:
         Saveload.save(updater, world, player)
 
     Sound.quit()
-    pygame.quit()
+    Game.quit()
 
 
 if __name__ == "__main__":

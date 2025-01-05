@@ -107,7 +107,8 @@ class Updater:
                     self.last_shift = now
 
                 elif event[pygame.K_r]:
-                    self.player.move(self.world.sx, self.world.sy)
+                    self.player.position.x = self.world.sx
+                    self.player.position.y = self.world.sy
                     Sound.play("spawnSound")
                     self.last_shift = now
 
@@ -116,4 +117,6 @@ class Updater:
         self.world.update(self.ticks)
         self.player.update(self.ticks)
 
+        # THIS IS IMPORTANT!
+        # (If you don't call this, the game will not update)
         self.ticks += 1

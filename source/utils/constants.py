@@ -2,14 +2,17 @@
 """ The gamelay speed is dependent for this """
 GAME_TICKS: float = 30.0 # Yeah, i sucks making games
 
-SCREEN_FULL_W: int = 768
-SCREEN_FULL_H: int = 512
+# NOTE: The original Minicraft uses "HEIGHT as 120 * 3" and "WIDTH as 160 * 3"
+
+SCREEN_FULL_H: int = 540
+SCREEN_FULL_W: int = 960
+
 
 RENDER_RANGE_V: int = 2
 RENDER_RANGE_H: int = 2
 
 
-# NOT CHANGE THESE (OR ALL WILL BROKE, lol)
+# NOT CHANGE THESE (OR EVERYTHING WILL BROKE, lol)
 
 TILE_SIZE: int = 32
 CHUNK_SIZE: int = 8
