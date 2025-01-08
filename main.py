@@ -7,13 +7,12 @@ from source.game import Game
 from source.sound import Sound
 
 from source.core.player import Player
-from source.core.world import World
+from source.level.world import World
 
 from source.screen.hotbar import Hotbar
 from source.screen.screen import Color
 from source.screen.shader import Shader
 from source.screen.startmenu import StartMenu
-from source.screen.tilemap import Tilemap
 
 from source.utils.saveload import Saveload
 from source.utils.updater import Updater

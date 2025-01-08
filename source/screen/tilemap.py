@@ -1,11 +1,13 @@
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
-from source.core.tiles import Tiles
+from source.level.tile.tiles import Tiles
 
 if TYPE_CHECKING:
-    from source.core.tile import Tile
-    from source.core.world import World
+    from source.level.tile.tile import Tile
+    from source.level.world import World
+
 
 class Tilemap:
     "" "Manages tile transitions using Minicraft's 4-directional system """

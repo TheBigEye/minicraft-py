@@ -1,17 +1,13 @@
 from math import floor
 from random import shuffle
 
-NOISE_SCALE: float = 0.0017
-
-""" More octaves, more detailed terrain """
-NOISE_OCTAVES: int = 8
-
-""" Controls the amplitude of each octave """
-NOISE_PERSISTENCE: float = 0.46
-
 
 class Perlin:
     """ My simple and fast "perlin noise" implementation :D """
+
+    NOISE_SCALE: float = 0.0017 # Less noise scale makes the terain bigger
+    NUM_OCTAVES: int = 8 # More octaves is more detailed but slower
+    PERSISTENCE: float = 0.46 # Controls the amplitude of each octave
 
     @staticmethod
     def heightmap(p: list, x: float, y: float) -> float:
@@ -33,10 +29,10 @@ class Perlin:
         max_value: float = 0  # Used for normalizing result to 0.0 - 1.0
 
         # Sum the noise contributions for each octave
-        for _ in range(NOISE_OCTAVES):
+        for _ in range(Perlin.NUM_OCTAVES): # Noise Octaves
             total += Perlin.noise(p, x * frequency, y * frequency) * amplitude
             max_value += amplitude
-            amplitude *= NOISE_PERSISTENCE  # Reduce amplitude for subsequent octaves
+            amplitude *= Perlin.PERSISTENCE  # Reduce amplitude for subsequent octaves
             frequency *= 2.1  # Increase frequency for subsequent octaves (lacunarity)
 
         # Normalize the result to be within the range [-1, 1]
@@ -63,10 +59,10 @@ class Perlin:
         max_value: float = 0  # Used for normalizing the result
 
         # Sum the noise contributions for each octave
-        for _ in range(NOISE_OCTAVES):
+        for _ in range(Perlin.NUM_OCTAVES): # Noise Octaves
             total += Perlin.noise(p, x * frequency, y * frequency) * amplitude
             max_value += amplitude
-            amplitude *= NOISE_PERSISTENCE # Reduce amplitude for subsequent octaves
+            amplitude *= Perlin.PERSISTENCE # Reduce amplitude for subsequent octaves
             frequency *= 2.05 # Increase frequency for subsequent octaves (lacunarity)
 
         # Normalize the result to be within the range [-1, 1]
@@ -93,10 +89,10 @@ class Perlin:
         max_value: float = 0  # Used for normalizing the result
 
         # Sum the noise contributions for each octave
-        for _ in range(NOISE_OCTAVES):
+        for _ in range(Perlin.NUM_OCTAVES): # Noise Octaves
             total += Perlin.noise(p, x * frequency, y * frequency) * amplitude
             max_value += amplitude
-            amplitude *= NOISE_PERSISTENCE # Reduce amplitude for subsequent octaves
+            amplitude *= Perlin.PERSISTENCE # Reduce amplitude for subsequent octaves
             frequency *= 2.15  # Increase frequency for subsequent octaves (lacunarity)
 
         # Invert the normalized value and shift it to be within [0, 1]

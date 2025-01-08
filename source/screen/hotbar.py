@@ -9,7 +9,7 @@ from source.utils.constants import SCREEN_HALF_W, SCREEN_FULL_H
 from source.screen.sprites import Sprites
 
 if TYPE_CHECKING:
-    from source.core.world import Player
+    from source.level.world import Player
 
 
 class Hotbar:
@@ -17,6 +17,8 @@ class Hotbar:
     def __init__(self, player: Player, font: Font) -> None:
         self.font: Font = font
         self.player: Player = player
+
+        self.sprites = []
 
         self.px: str = ""
         self.py: str = ""
@@ -31,7 +33,7 @@ class Hotbar:
         self.HEARTS_HEIGHT: int = SCREEN_FULL_H - 34
         self.STAMINA_HEIGHT: int = SCREEN_FULL_H - 18
 
-        self.BORDERLINE = Sprites.GUI_BORDERLINE
+        self.BORDERLINE = Sprites.GUI_TOP_BORDER
         self.BACKGROUND = Sprites.GUI_BACKGROUND
 
         self.HEART_NONE = Sprites.HEART_NONE
@@ -56,34 +58,34 @@ class Hotbar:
 
 
     def render(self, screen: Surface) -> None:
-        sprites: list = []
+        self.sprites.clear()
 
         # Render player coordinates
         xp = self.font.render(self.px, False, Color.WHITE, self.bg_color).convert()
         yp = self.font.render(self.py, False, Color.WHITE, self.bg_color).convert()
 
         # Add the border, background for hearts, and background for stamina
-        sprites.extend(
+        self.sprites.extend(
             (sprite[0], (i * 8, sprite[1]))
             for sprite in self.SPRITES
             for i in range(self.HOTBAR_LENGTH)
         )
 
         # Add coordinates to sprites list
-        sprites.append((xp, self.px_pos))
-        sprites.append((yp, self.py_pos))
+        self.sprites.append((xp, self.px_pos))
+        self.sprites.append((yp, self.py_pos))
 
         # Add hearts (full or empty based on player health)
-        sprites.extend(
+        self.sprites.extend(
             (self.HEART_FULL if i < self.player.health else self.HEART_NONE, (16 + (i * 16), self.HEARTS_HEIGHT + 1))
             for i in range(self.player.MAX_STAT)
         )
 
         # Add stamina (full or empty based on player energy)
-        sprites.extend(
+        self.sprites.extend(
             (self.STAMINA_FULL if i < self.player.energy else self.STAMINA_NONE, (16 + (i * 16), self.STAMINA_HEIGHT - 1))
             for i in range(self.player.MAX_STAT)
         )
 
         # Draw all sprites onto the screen
-        screen.fblits(sprites)
+        screen.fblits(self.sprites)

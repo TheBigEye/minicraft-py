@@ -7,12 +7,15 @@ import array
 
 from typing import TYPE_CHECKING, BinaryIO
 
+from pygame import Vector2
+
+from source.entity.mobs import Mobs
 from source.sound import Sound
 from source.utils.region import Region
 
 if TYPE_CHECKING:
     from source.core.player import Player
-    from source.core.world import World
+    from source.level.world import World
     from source.utils.updater import Updater
 
 
@@ -120,14 +123,14 @@ class TinyBinaryTag:
 class Saveload:
     @staticmethod
     def save(updater, world, player): # type: (Updater, World, Player) -> None
-        """Save the game state."""
+        """Save the game state including mobs."""
         os.makedirs('./saves', exist_ok=True)
 
-        # Save world metadata
-        with open('./saves/level.dat', 'wb') as f:
+        # Save world metadata and mobs
+        with open('./saves/level.dat', 'wb') as level:
             # Write magic number and version
-            f.write(b'MCPY')
-            f.write(struct.pack('!B', 1))  # Version 1
+            level.write(b'MCPY')
+            level.write(struct.pack('!B', 1))  # Version 1
 
             # Save header data
             header = {
@@ -136,7 +139,7 @@ class Saveload:
                 'spawn': (world.sx, world.sy),
                 'ticks': updater.ticks
             }
-            pickle.dump(header, f)
+            pickle.dump(header, level)
 
             # Save player data
             player_data = {
@@ -151,7 +154,23 @@ class Saveload:
                 'health': player.health,
                 'energy': player.energy
             }
-            pickle.dump(player_data, f)
+            pickle.dump(player_data, level)
+
+            # Save mob data
+            mob_data = []
+            for mob in world.mobs:
+                mob_data.append({
+                    'id': mob.id,
+                    'x': mob.position.x,
+                    'y': mob.position.y,
+                    'fx': mob.facing.x,
+                    'fy': mob.facing.y,
+                    'health': mob.health,
+                    'hostile': mob.hostile,
+                    'frame': mob.frame,
+                    'anim_timer': mob.timer
+                })
+            pickle.dump(mob_data, level)
 
         # Save modified chunks to their region files
         for (cx, cy), chunk in world.chunks.items():
@@ -160,32 +179,33 @@ class Saveload:
                 region = Region('./saves', rx, ry)
 
                 data = {
-                    'tiles': chunk.get_tiles()
+                    'tiles': chunk.data()
                 }
 
                 region.write_chunk(lcx, lcy, data)
                 chunk.modified = False
 
+
     @staticmethod
     def load(updater, world, player): # type: (Updater, World, Player) -> None
-        """Load the game state."""
-        with open('./saves/level.dat', 'rb') as f:
+        """Load the game state including mobs."""
+        with open('./saves/level.dat', 'rb') as level:
             # Verify magic number and version
-            if f.read(4) != b'MCPY':
+            if level.read(4) != b'MCPY':
                 raise ValueError("Invalid save file format")
 
-            if struct.unpack('!B', f.read(1))[0] != 1:
+            if struct.unpack('!B', level.read(1))[0] != 1:
                 raise ValueError("Unsupported save version")
 
             # Load header data
-            header = pickle.load(f)
+            header = pickle.load(level)
             world.seed = header['seed']
             world.perm = header['perm']
             world.sx, world.sy = header['spawn']
             updater.ticks = header['ticks']
 
             # Load player data
-            player_data = pickle.load(f)
+            player_data = pickle.load(level)
             player.position.x = float(player_data['x'])
             player.position.y = float(player_data['y'])
             player.offset.x = float(player_data['xo'])
@@ -196,6 +216,28 @@ class Saveload:
             player.facing.y = float(player_data['fy'])
             player.health = player_data['health']
             player.energy = player_data['energy']
+
+            # Load mob data
+            try:
+                mob_data = pickle.load(level)
+                world.mobs.clear()  # Clear existing mobs before loading
+
+                for mob_info in mob_data:
+                    # Create new mob instance from saved ID
+                    mob = Mobs.from_id(mob_info['id']).clone()
+
+                    # Restore mob state
+                    mob.position = Vector2(mob_info['x'], mob_info['y'])
+                    mob.facing = Vector2(mob_info['fx'], mob_info['fy'])
+                    mob.health = mob_info['health']
+                    mob.hostile = mob_info['hostile']
+                    mob.frame = mob_info['frame']
+                    mob.timer = mob_info['anim_timer']
+
+                    world.mobs.append(mob)
+            except EOFError:
+                # Handle older save files that don't have mob data
+                world.spawn_mobs()  # Regenerate mobs if none were saved
 
         Sound.play("eventSound")
         player.initialize(world, player.position.x, player.position.y)

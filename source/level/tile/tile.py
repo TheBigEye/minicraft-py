@@ -9,15 +9,18 @@ from source.sound import Sound
 from source.utils.constants import TILE_HALF_SIZE, TILE_SIZE
 
 if TYPE_CHECKING:
-    from source.core.world import World
+    from source.level.world import World
+
 
 class Tile:
 
-    __slots__ = ['id', 'sprite', 'solid', 'parent', 'health', 'sprites', 'connectors']
+    # Here we will have a lot of instances of this class, we can save a lot of memory by using __slots__
+    __slots__ = ['id', 'sprite', 'solid', 'liquid', 'parent', 'health', 'sprites', 'connectors']
 
-    def __init__(self, id: int, sprites: list[Surface], solid: bool, parent: int, health: int) -> None:
+    def __init__(self, id: int, sprites: list[Surface], solid: bool, liquid: bool, parent: int, health: int) -> None:
         self.id = id
         self.solid = solid
+        self.liquid = liquid
         self.parent = parent
         self.health = health
 
@@ -55,7 +58,6 @@ class Tile:
 
     def render(self, world: World, x: int, y: int) -> None:
 
-
         # Normal tiles
         if self.id not in {9, 10, 11}:  # Tree IDs
             world.tile_buffer.append((self.sprite, (x, y)))
@@ -69,4 +71,4 @@ class Tile:
 
     def clone(self) -> Tile:
         """ Returns a copy of the tile instance """
-        return self.__class__(self.id, self.sprites, self.solid, self.parent, self.health)
+        return self.__class__(self.id, self.sprites, self.solid, self.liquid, self.parent, self.health)

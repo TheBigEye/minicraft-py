@@ -1,22 +1,25 @@
 from __future__ import annotations
 
-from random import randint, seed
+from random import choice, randint, random, seed
 from typing import TYPE_CHECKING
 
-from pygame import Surface
+from pygame import Surface, Vector2
 
-from source.core.perlin import NOISE_SCALE, Perlin
-from source.core.tiles import Tiles
+from source.entity.mobs import Mobs
 from source.game import Game
+from source.level.chunk import Chunk
+from source.level.perlin import Perlin
+from source.level.tile.tiles import Tiles
 from source.screen.debug import Debug
-from source.utils.constants import *
 from source.screen.tilemap import Tilemap
+from source.utils.constants import *
 from source.utils.region import Region
-from source.core.chunk import Chunk
 
 if TYPE_CHECKING:
     from source.core.player import Player
-    from source.core.tile import Tile
+    from source.entity.mob import Mob
+    from source.level.tile.tile import Tile
+
 
 class World:
     def __init__(self, player: Player) -> None:
@@ -25,6 +28,8 @@ class World:
 
         # Storage for terrain and chunks
         self.chunks: dict = {}
+        self.mobs: list[Mob] = []
+
         self.ticks: int = 0
 
         # Spawn point
@@ -47,11 +52,15 @@ class World:
         xp = int(self.player.position.x) // CHUNK_SIZE
         yp = int(self.player.position.y) // CHUNK_SIZE
 
+        # We generate the spawn chunks
         for cx in range((xp - 6), (xp + 6)):
             for cy in range((yp - 6), (yp + 6)):
                 self.load_chunk(cx, cy)
 
         self.player.initialize(self, self.sx, self.sy)
+
+        # Spawn initial mobs
+        self.spawn_mobs()
 
         self.loaded = True
 
@@ -64,16 +73,17 @@ class World:
         # Try to load from region file first
         rx, ry, lcx, lcy = Region.get_region(cx, cy)
         region = Region('./saves', rx, ry)
-        chunk_data = region.read_chunk(lcx, lcy)
+        data = region.read_chunk(lcx, lcy)
 
-        if chunk_data:
+        if data:
             # Reconstruct chunk from saved data
             chunk_tiles = [
                 [Tiles.from_id(tile_id).clone() for tile_id in row]
-                for row in chunk_data['tiles']
+                for row in data['tiles']
             ]
-            chunk = Chunk(cx, cy, chunk_tiles)
+            chunk: Chunk = Chunk(cx, cy, chunk_tiles)
             chunk.modified = False  # Loaded chunks start unmodified
+
         else:
             # Generate new chunk
             chunk_tiles = Chunk.empty()
@@ -81,11 +91,11 @@ class World:
             # Single pass: Generate terrain and trees
             for h in range(CHUNK_SIZE):
                 wy = cy * CHUNK_SIZE + h
-                ty = wy * NOISE_SCALE
+                ty = wy * Perlin.NOISE_SCALE
 
                 for w in range(CHUNK_SIZE):
                     wx = cx * CHUNK_SIZE + w
-                    tx = wx * NOISE_SCALE
+                    tx = wx * Perlin.NOISE_SCALE
 
                     elevation = Perlin.heightmap(self.perm, tx, ty)
                     humidity = Perlin.humidity(self.perm, tx, ty)
@@ -102,21 +112,29 @@ class World:
                         tile = Tiles.iceberg.clone() if temperature < 0.25 else Tiles.ocean.clone()
                     elif (elevation > 0.32) and (elevation < 0.42):
                         tile = Tiles.ice.clone() if temperature < 0.25 else Tiles.water.clone()
+
                     elif (elevation > 0.42) and (elevation < 0.60):
-                        tile = Tiles.snow.clone() if temperature < 0.25 else Tiles.sand.clone()
+                        if temperature < 0.25:
+                            tile = Tiles.snow.clone()
+                        else:
+                            if random() < 0.025:
+                                tile = Tiles.cactus.clone()
+                            else:
+                                tile = Tiles.sand.clone()
+
                     elif elevation < 1.75:
                         # Cold regions
                         if temperature < 0.25:
                             tile = Tiles.snow.clone()
                             if humidity > 0.4 and elevation > 0.75:
-                                can_place_tree = randint(0, 8) == 4
+                                can_place_tree = random() < 0.125  # 1/8 chance
                                 tree_type = Tiles.pine_tree
 
                         # Cool/Temperate regions
                         elif temperature < 0.70:
                             tile = Tiles.grass.clone()
                             if humidity > 0.4 and elevation > 0.50:
-                                can_place_tree = randint(0, 8) == 4
+                                can_place_tree = random() < 0.125  # 1/8 chance
                                 tree_type = Tiles.oak_tree
 
                         # Warm/Hot regions
@@ -126,8 +144,8 @@ class World:
                             else:
                                 tile = Tiles.grass.clone()
                                 if humidity > 0.6 and elevation > 0.60:
-                                    can_place_tree = randint(0, 8) == 4
-                                    tree_type = Tiles.birch_tree if randint(0, 4) == 2 else Tiles.oak_tree
+                                    can_place_tree = random() < 0.125  # 1/8 chance
+                                    tree_type = Tiles.birch_tree if random() < 0.25 else Tiles.oak_tree
 
                     # Mountain biomes
                     elif elevation < 1.95:
@@ -164,13 +182,14 @@ class World:
 
                     # Check for spawnpoint
                     if self.sx == 0 and self.sy == 0:
-                        if tile.id in {Tiles.grass.id, Tiles.sand.id, Tiles.snow.id}:
+                        if not tile.solid and not tile.liquid:
                             self.sx = wx
                             self.sy = wy
 
-            chunk = Chunk(cx, cy, chunk_tiles)
+            chunk: Chunk = Chunk(cx, cy, chunk_tiles)
 
         self.chunks[(cx, cy)] = chunk
+
 
     def unload_chunks(self, center_x: int, center_y: int) -> None:
         """ Unload chunks that are too far from the center coordinates """
@@ -179,7 +198,7 @@ class World:
             if (abs(cx - center_x) > RENDER_RANGE_H + 2 or
                 abs(cy - center_y) > RENDER_RANGE_V + 2):
 
-                chunk = self.chunks[(cx, cy)]
+                chunk: Chunk = self.chunks[(cx, cy)]
 
                 # Save modified chunks before unloading
                 if chunk.modified:
@@ -187,7 +206,7 @@ class World:
                     region = Region('./saves', rx, ry)
 
                     chunk_data = {
-                        'tiles': chunk.get_tiles()
+                        'tiles': chunk.data()
                     }
 
                     region.write_chunk(lcx, lcy, chunk_data)
@@ -198,12 +217,13 @@ class World:
     def get_tile(self, x: int, y: int) -> Tile:
         """ Get the character at coordinates in the world """
 
-        chunk_coords = (x // CHUNK_SIZE, y // CHUNK_SIZE)
-        if chunk := self.chunks.get(chunk_coords):
-            return chunk.get_tile(x % CHUNK_SIZE, y % CHUNK_SIZE)
+        coords = (x // CHUNK_SIZE, y // CHUNK_SIZE)
+        if chunk := self.chunks.get(coords):
+            return chunk.get(x % CHUNK_SIZE, y % CHUNK_SIZE)
 
-        self.load_chunk(*chunk_coords)
-        return self.chunks[chunk_coords].get_tile(x % CHUNK_SIZE, y % CHUNK_SIZE)
+        self.load_chunk(*coords)
+        return self.chunks[coords].get(x % CHUNK_SIZE, y % CHUNK_SIZE)
+
 
     def set_tile(self, x: int, y: int, tile: int | Tile) -> None:
         """ Update the world map with the replacement tile """
@@ -222,9 +242,9 @@ class World:
             tile = tile.clone()
 
         # Set the tile in the terrain
-        self.chunks[(cx, cy)].set_tile(x % CHUNK_SIZE, y % CHUNK_SIZE, tile)
+        self.chunks[(cx, cy)].set(x % CHUNK_SIZE, y % CHUNK_SIZE, tile)
 
-    # FIX FIX THIS SHIT: optimize this
+
     def daylight(self) -> int:
         if self.ticks < 3000:
             return 16 + (self.ticks * 239 // 3000)
@@ -234,6 +254,7 @@ class World:
             return 255 - ((self.ticks - 16000) * 239 // 2000)
         else:
             return 16
+
 
     def render(self, screen: Surface) -> None:
         # Clear buffers at start
@@ -270,17 +291,19 @@ class World:
                 if chunk_base_y > SCREEN_FULL_H or chunk_base_y + (CHUNK_SIZE * TILE_SIZE) < 0:
                     continue
 
-                chunk = self.chunks.get((chunk_x, chunk_y))
+                chunk: Chunk = self.chunks.get((chunk_x, chunk_y))
                 if not chunk:
                     continue
 
                 # Render chunk tiles
-                for yt, row in enumerate(chunk.tiles):
+                for yt in range(CHUNK_SIZE):
+                    row = chunk.tiles[yt]
                     wy = chunk_base_y + yt * TILE_SIZE
                     if not screen_bounds[1] <= wy <= screen_bounds[3]:
                         continue
 
-                    for xt, tile in enumerate(row):
+                    for xt in range(CHUNK_SIZE):
+                        tile: Tile = row[xt]
                         wx = chunk_base_x + xt * TILE_SIZE
                         if not screen_bounds[0] <= wx <= screen_bounds[2]:
                             continue
@@ -292,16 +315,30 @@ class World:
 
                         tile.render(self, wx, wy)
 
+
+        # Add mobs to depth buffer
+        for mob in self.mobs:
+            # Calculate mob screen position based on player camera
+            x = int(SCREEN_HALF_W - ((self.player.position.x - mob.position.x) * TILE_SIZE))
+            y = int(SCREEN_HALF_H - ((self.player.position.y - mob.position.y) * TILE_SIZE))
+
+            # Only render if on screen
+            if (-TILE_SIZE <= x <= SCREEN_FULL_W and
+                -TILE_SIZE <= y <= SCREEN_FULL_H):
+                self.depth_buffer.extend([(mob.sprite, (x - 15, y - 24, y - 24))])
+
+
         # Sort and render the buffers
         self.depth_buffer.extend(self.player.render(screen))
 
+
         for buffer in [self.tile_buffer, self.depth_buffer]:
-            # Ordenamos usando la coordenada Y almacenada como tercer elemento de la tupla
             buffer.sort(key=lambda x: x[1][2] if len(x[1]) > 2 else x[1][1])
-            # Al hacer el fblit, solo pasamos las coordenadas x, y (no la coordenada de sorting)
             screen.fblits([(sprite, (pos[0], pos[1])) for sprite, pos in buffer])
 
+
         screen.blit(Game.darkness)
+
 
         if Game.debug:
             Debug.render(
@@ -310,6 +347,7 @@ class World:
                 self.player.position.x, self.player.position.y,
                 self.player.cx, self.player.cy
             )
+
 
     def update(self, ticks) -> None:
         """ Update chunks around the player's position """
@@ -326,13 +364,11 @@ class World:
 
                 # Update each chunk within the range
                 if ticks % 32 == 0:
-                    if randint(0, 8) == 4:
+                    if random() < 0.125:  # 1/8 chance
                         self.update_tiles(
-                            (cx, cy),            # The chunk to update
-                            Tiles.dirt,       # The tile to replace
-                            Tiles.grass,      # The tile to replace with
-
-                            # Tiles that can influence the replacement
+                            (cx, cy),
+                            Tiles.dirt,
+                            Tiles.grass,
                             [
                                 Tiles.grass,
                                 Tiles.tallgrass
@@ -353,13 +389,19 @@ class World:
                         ]
                     )
 
+        # Update mobs
+        for mob in self.mobs:
+            mob.update(ticks, self)
+
         if ticks % 512 == 0:
             """ Manage chunk loading/unloading around player """
             # Unload distant chunks
             self.unload_chunks(self.player.cx, self.player.cy)
 
+
     def update_tiles(self, chunk_coords: tuple, tile_target: Tile, parent: Tile, influences: list) -> None:
-        chunk = self.chunks.get(chunk_coords)
+        chunk: Chunk = self.chunks.get(chunk_coords)
+
         if not chunk:
             return
 
@@ -368,7 +410,7 @@ class World:
         modified = False
 
         # Create a copy of the chunk tiles
-        temp_chunk = [row[:] for row in chunk.tiles]
+        temp = [row[:] for row in chunk.tiles]
 
         # Iterate through each tile in the chunk
         for yt in range(CHUNK_SIZE):
@@ -379,14 +421,15 @@ class World:
                     # If influence_tiles is provided, check surrounding tiles
                     if self.tiles_around(chunk_coords, influences, xt, yt):
                         # Replace the target tile with the new tile
-                        temp_chunk[yt][xt] = replace
+                        temp[yt][xt] = replace
                         modified = True
                         break
 
         # Update the terrain with the modified chunk if changes were made
         if modified:
-            chunk.tiles = temp_chunk
+            chunk.tiles = temp
             chunk.modified = True
+
 
     def tiles_around(self, chunk: tuple, tiles_around: list, x: int, y: int) -> bool:
         """ Check if any of the specified tiles are around the given coordinates """
@@ -402,7 +445,7 @@ class World:
             new_chunk_y = chunk[1] + (y + dy) // CHUNK_SIZE
 
             # Retrieve the adjacent chunk from the terrain
-            around_chunk = self.chunks.get((new_chunk_x, new_chunk_y))
+            around_chunk: Chunk = self.chunks.get((new_chunk_x, new_chunk_y))
 
             # Check if any adjacent tile matches the specified tile types
             if around_chunk:
@@ -414,3 +457,23 @@ class World:
                     return True
 
         return False
+
+    def spawn_mobs(self) -> None:
+        """ Spawn initial mobs in the world """
+        # TODO: for now this is for testing ...
+
+        for _ in range(16):  # Try spawn 16 random mobs
+            # Pick random coordinates near spawn
+            x = self.sx + randint(-25, 25)
+            y = self.sy + randint(-25, 25)
+
+            # Check if spawn location is valid (not in water/solid blocks)
+            tile: Tile = self.get_tile(int(x), int(y))
+            if not tile.solid and not tile.liquid:
+
+                # Create random mob
+                mob_type = choice([Mobs.sheep.id, Mobs.pig.id, Mobs.vamp.id])
+                mob = Mobs.from_id(mob_type).clone()
+                mob.position = Vector2(x, y)
+
+                self.mobs.append(mob)
