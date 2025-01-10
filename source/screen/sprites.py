@@ -3,10 +3,7 @@ import pygame
 from source.utils.constants import TILE_SIZE
 
 ATLAS: pygame.Surface = pygame.image.load('assets/atlas.png').convert_alpha()
-TITLE: pygame.Surface = pygame.transform.scale(pygame.image.load('assets/title.png').convert_alpha(), (104 * 4.4, 16 * 4.4))
 
-# Background image scaled by 2x
-BACK: pygame.Surface = pygame.transform.scale(pygame.image.load('assets/back.png').convert(), (384 * 2.5, 163 * 2.5))
 
 class Sprites:
 
@@ -61,7 +58,6 @@ class Sprites:
         get(2, 2, 16, TILE_SIZE),   # Bottom-right corner
 
         get(0, 3, 16, TILE_SIZE),  # Base grass 2
-        get(1, 3, 16, TILE_SIZE),  # Base grass 3
     ]
 
     HOLE = [
@@ -79,7 +75,8 @@ class Sprites:
     ]
 
     SAND = [
-        get(12, 3, 16, TILE_SIZE), # Base sand
+        get(13, 1, 16, TILE_SIZE), # Base sand
+
         get(13, 0, 16, TILE_SIZE), # Top transition
         get(14, 1, 16, TILE_SIZE), # Left transition
         get(12, 1, 16, TILE_SIZE), # Right transition
@@ -89,8 +86,6 @@ class Sprites:
         get(14, 0, 16, TILE_SIZE), # Top-right corner
         get(12, 2, 16, TILE_SIZE), # Bottom-left corner
         get(14, 2, 16, TILE_SIZE), # Bottom-right corner
-
-        get(13, 3, 16, TILE_SIZE)  # Base sand 2
     ]
 
     SNOW = [
@@ -107,7 +102,6 @@ class Sprites:
         get(8, 2, 16, TILE_SIZE), # Bottom-right corner
 
         get(6, 3, 16, TILE_SIZE), # Base snow 2
-        get(7, 3, 16, TILE_SIZE), # Base snow 3
     ]
 
     ICE = [
@@ -134,12 +128,24 @@ class Sprites:
     ]
 
     CACTUS = [
-        get(0, 5, 16, TILE_SIZE),
-        get(1, 5, 16, TILE_SIZE),
+        get(0, 5, 16, TILE_SIZE)
     ]
 
     WATER = [
-        get(13, 1, 16, TILE_SIZE), # Base water
+        get(16, 1, 16, TILE_SIZE), # Base water
+
+        get(16, 0, 16, TILE_SIZE), # Top transition
+        get(17, 1, 16, TILE_SIZE), # Left transition
+        get(15, 1, 16, TILE_SIZE),  # Right transition
+        get(16, 2, 16, TILE_SIZE), # Bottom transition
+
+        get(15, 0, 16, TILE_SIZE),  # Top-left corner
+        get(17, 0, 16, TILE_SIZE), # Top-right corner
+        get(15, 2, 16, TILE_SIZE),  # Bottom-left corner
+        get(17, 2, 16, TILE_SIZE), # Bottom-right corner
+
+        get(15, 3, 16, TILE_SIZE), # Base water 2
+        get(16, 3, 16, TILE_SIZE), # Base water 3
     ]
 
     DIRT = [
@@ -156,7 +162,8 @@ class Sprites:
 
     BIRCH_TREE = [
         get(0, 5, 32, TILE_SIZE * 2),
-        get(1, 5, 32, TILE_SIZE * 2)
+        #get(1, 5, 32, TILE_SIZE * 2)
+        get(0, 5, 32, TILE_SIZE * 2),
     ]
 
     PINE_TREE = [

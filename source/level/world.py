@@ -33,8 +33,8 @@ class World:
         self.ticks: int = 0
 
         # Spawn point
-        self.sx: float = 0.0
-        self.sy: float = 0.0
+        self.sx: float = 0.00
+        self.sy: float = 0.00
 
         self.player = player
         self.loaded = False
@@ -49,8 +49,8 @@ class World:
 
         self.perm = Perlin.permutation()
 
-        xp = int(self.player.position.x) // CHUNK_SIZE
-        yp = int(self.player.position.y) // CHUNK_SIZE
+        xp = 0 // CHUNK_SIZE
+        yp = 0 // CHUNK_SIZE
 
         # We generate the spawn chunks
         for cx in range((xp - 6), (xp + 6)):
@@ -102,7 +102,7 @@ class World:
                     temperature = Perlin.temperature(self.perm, tx, ty)
 
                     tile = Tiles.grass.clone()
-                    can_place_tree = False
+                    place_tree = False
                     tree_type = None
 
                     # Generate base terrain
@@ -126,25 +126,25 @@ class World:
                         # Cold regions
                         if temperature < 0.25:
                             tile = Tiles.snow.clone()
-                            if humidity > 0.4 and elevation > 0.75:
-                                can_place_tree = random() < 0.125  # 1/8 chance
+                            if humidity > 0.40 and elevation > 0.75:
+                                place_tree = random() < 0.125  # 1/8 chance
                                 tree_type = Tiles.pine_tree
 
                         # Cool/Temperate regions
                         elif temperature < 0.70:
                             tile = Tiles.grass.clone()
-                            if humidity > 0.4 and elevation > 0.50:
-                                can_place_tree = random() < 0.125  # 1/8 chance
+                            if humidity > 0.40 and elevation > 0.50:
+                                place_tree = random() < 0.125  # 1/8 chance
                                 tree_type = Tiles.oak_tree
 
                         # Warm/Hot regions
                         else:
-                            if humidity < 0.3:
+                            if humidity < 0.30:
                                 tile = Tiles.sand.clone()
                             else:
                                 tile = Tiles.grass.clone()
-                                if humidity > 0.6 and elevation > 0.60:
-                                    can_place_tree = random() < 0.125  # 1/8 chance
+                                if humidity > 0.60 and elevation > 0.60:
+                                    place_tree = random() < 0.125  # 1/8 chance
                                     tree_type = Tiles.birch_tree if random() < 0.25 else Tiles.oak_tree
 
                     # Mountain biomes
@@ -157,7 +157,7 @@ class World:
                     chunk_tiles[h][w] = tile
 
                     # Try placing a tree if conditions are met
-                    if can_place_tree and tree_type and not tile.solid:
+                    if place_tree and tree_type and not tile.solid:
                         # Only try to place trees if we're not too close to chunk borders
                         if (w > 1 and w < CHUNK_SIZE - 2 and
                             h > 1 and h < CHUNK_SIZE - 2):
@@ -229,11 +229,10 @@ class World:
         """ Update the world map with the replacement tile """
 
         # Calculate the chunk coordinates
-        cx = x // CHUNK_SIZE
-        cy = y // CHUNK_SIZE
+        coords = (x // CHUNK_SIZE, y // CHUNK_SIZE)
 
         # Load the chunk at the calculated chunk coordinates
-        self.load_chunk(cx, cy)
+        self.load_chunk(*coords)
 
         # Determine the correct Tile object
         if isinstance(tile, int):
@@ -242,7 +241,11 @@ class World:
             tile = tile.clone()
 
         # Set the tile in the terrain
-        self.chunks[(cx, cy)].set(x % CHUNK_SIZE, y % CHUNK_SIZE, tile)
+        self.chunks[coords].set(
+            x % CHUNK_SIZE,
+            y % CHUNK_SIZE,
+            tile
+        )
 
 
     def daylight(self) -> int:
@@ -265,18 +268,17 @@ class World:
         camera_x = int(SCREEN_HALF_W - (self.player.position.x * TILE_SIZE))
         camera_y = int(SCREEN_HALF_H - (self.player.position.y * TILE_SIZE))
 
-        # Get player chunk position
-        player_chunk_x = int(self.player.position.x) // CHUNK_SIZE
-        player_chunk_y = int(self.player.position.y) // CHUNK_SIZE
-
         # Calculate visible chunk range
         chunk_range = (
-            range(player_chunk_x - RENDER_RANGE_H - 1, player_chunk_x + RENDER_RANGE_H + 2),
-            range(player_chunk_y - RENDER_RANGE_V - 1, player_chunk_y + RENDER_RANGE_V + 2)
+            range(self.player.cx - RENDER_RANGE_H - 1, self.player.cx + RENDER_RANGE_H + 2),
+            range(self.player.cy - RENDER_RANGE_V - 1, self.player.cy + RENDER_RANGE_V + 2)
         )
 
         # Screen boundaries for culling
-        screen_bounds = (-TILE_MULT_SIZE, -TILE_MULT_SIZE, SCREEN_FULL_W + TILE_HALF_SIZE, SCREEN_FULL_H - TILE_HALF_SIZE)
+        screen_bounds = (
+            -TILE_MULT_SIZE, -TILE_MULT_SIZE,
+            SCREEN_FULL_W + TILE_HALF_SIZE, SCREEN_FULL_H - TILE_HALF_SIZE
+        )
 
         # Render visible chunks
         for chunk_x in chunk_range[0]:
@@ -331,7 +333,7 @@ class World:
         # Sort and render the buffers
         self.depth_buffer.extend(self.player.render(screen))
 
-
+        # Sort and render sprite buffers!
         for buffer in [self.tile_buffer, self.depth_buffer]:
             buffer.sort(key=lambda x: x[1][2] if len(x[1]) > 2 else x[1][1])
             screen.fblits([(sprite, (pos[0], pos[1])) for sprite, pos in buffer])
@@ -453,7 +455,7 @@ class World:
                 new_x = (x + dx) % CHUNK_SIZE
 
                 # Check if tile matches any target tile
-                if around_chunk.tiles[new_y][new_x].id in [tile.id for tile in tiles_around]:
+                if around_chunk.tiles[new_y][new_x].id in { tile.id for tile in tiles_around }:
                     return True
 
         return False

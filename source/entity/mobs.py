@@ -5,31 +5,29 @@ from source.screen.sprites import Sprites
 class Mobs:
     """ Mob manager """
 
-    # Master mob registry
-    REGISTRY = {
-        1: ("sheep", Mob(1, Sprites.SHEEP, 5, 0.03, False)),
-        2: ("pig", Mob(2, Sprites.PIG, 5, 0.03, False)),
-        3: ("vamp", Mob(3, Sprites.VAMP, 8, 0.04, True))
-    }
+    MOBS_LIST = [
+        # Mob Name   ID  Sprites List   Health Speed  Hostile?
+        ("sheep", Mob(0, Sprites.SHEEP,  5,    0.028, False)),
+        ("pig",   Mob(1, Sprites.PIG,    5,    0.030, False)),
+        ("vamp",  Mob(2, Sprites.VAMP,   8,    0.035, True))
+    ]
 
     # Create reverse lookup by name
-    NAME_TO_ID = {
-        name: id for id, (name, _) in REGISTRY.items()
+    INDEX = {
+        name: index for index, (name, _) in enumerate(MOBS_LIST)
     }
 
     # Create mob instance attributes
     locals().update(
-        {
-            name: mob for id, (name, mob) in REGISTRY.items()
-        }
+        {name: mob for name, mob in (item for item in MOBS_LIST)}
     )
 
-    @classmethod
-    def from_id(cls, id: int) -> Mob:
-        """Get mob instance by ID"""
-        return cls.REGISTRY[id][1]
+    @staticmethod
+    def from_id(id: int) -> Mob:
+        """ Get mob instance by ID """
+        return Mobs.MOBS_LIST[id][1]
 
-    @classmethod
-    def from_name(cls, name: str) -> Mob:
-        """Get mob instance by name"""
-        return cls.REGISTRY[cls.NAME_TO_ID[name]][1]
+    @staticmethod
+    def from_name(name: str) -> Mob:
+        """ Get mob instance by name """
+        return Mobs.MOBS_LIST[Mobs.INDEX[name]][1]

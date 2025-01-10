@@ -7,7 +7,6 @@ import pygame
 from pygame import Font, Surface
 
 from source.screen.screen import Color, Screen
-from source.screen.sprites import BACK, TITLE
 from source.sound import Sound
 
 from source.utils.constants import (
@@ -38,8 +37,14 @@ class StartMenu:
         self.fading_out = False
         self.fade_alpha = 0
 
-        self.TITLE = TITLE
-        self.BACK = BACK
+        self.TITLE: pygame.Surface = pygame.transform.scale(
+            pygame.image.load('assets/title.png').convert_alpha(), (104 * 4.4, 16 * 4.4)
+        )
+
+        # Background image scaled by 2x
+        self.BACK: pygame.Surface = pygame.transform.scale(
+            pygame.image.load('assets/back.png').convert(), (384 * 2.5, 163 * 2.5)
+        )
 
         # Initialize surfaces and rectangles
         self.overlay = pygame.Surface(SCREEN_SIZE_T, pygame.SRCALPHA, 32).convert_alpha()

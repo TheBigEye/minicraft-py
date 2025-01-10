@@ -51,20 +51,19 @@ def main() -> None:
     # - Lastly, I'm accustomed to using the original main loop from Minicraft in
     # Java, so it's a method I'm familiar and comfortable with
 
-    this_time = time_ns()
-    last_time = this_time
-    nano_time = 1000000000.0 / GAME_TICKS
+    this_time: int = time_ns()
+    last_time: int = this_time
+    nano_time: float = 1000000000.0 / GAME_TICKS
 
     timer = time() * 1000
-    delta = 0
-    #ticks = 0
+    delta: int = 0
 
-    running = True
-    drawing = False
+    running: bool = True
+    drawing: bool = False
 
     # Only calculate render time if Game.debug is True
-    screen_time = 0.0
-    last_screen_time = 0.0
+    screen_time: float = 0.00
+    last_screen: float = 0.00
 
     while running:
         this_time = time_ns()
@@ -75,7 +74,6 @@ def main() -> None:
 
         # GAME LOGIC UPDATE
         while delta >= 1:
-            #ticks += 1
 
             for _ in event.get(QUIT):
                 running = False
@@ -112,12 +110,12 @@ def main() -> None:
             display.flip()
 
             if Game.debug:
-                last_screen_time = (time() * 1000) - screen_time
+                last_screen = (time() * 1000) - screen_time
 
         # DEBUG ...
         if ((time() * 1000) - timer) > 1000:
             if Game.debug:
-                print(f"> render time: {last_screen_time:.2f}ms")
+                print(f"> render time: {last_screen:.2f}ms")
 
             timer += 1000
 

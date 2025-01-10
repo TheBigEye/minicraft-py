@@ -10,19 +10,78 @@ if TYPE_CHECKING:
 
 
 class Tilemap:
-    "" "Manages tile transitions using Minicraft's 4-directional system """
+    """ Manages tile transitions using Minicraft's 4-directional system """
+
+    # NOTE: By default, all tiles connect seamlessly with each other. However, by
+    # specifying an ID for each tile in CONNECTIONS, we can control which tiles will
+    # not connect. For example, if we define "Tiles.grass.id: {Tiles.sand.id}",
+    # grass will not connect directly to sand, resulting in a smooth transition
+    # effect between the two tile types.
+
+    # This allows the system to manage transitions visually, ensuring that
+    # neighboring tiles with different IDs create distinct yet visually appealing
+    # transitions instead of abrupt changes.
+
 
     # Valid terrain connections
     CONNECTIONS = {
-        Tiles.grass.id: [Tiles.dirt.id, Tiles.sand.id],
-        Tiles.sand.id: [Tiles.water.id],
-        Tiles.snow.id: [Tiles.grass.id],
-        Tiles.ice.id: [Tiles.snow.id],
-        Tiles.hole.id: [Tiles.sand.id, Tiles.dirt.id, Tiles.grass.id, Tiles.snow.id]
+
+        Tiles.grass.id: {
+            Tiles.dirt.id,
+            Tiles.sand.id,
+            Tiles.snow.id,
+            Tiles.water.id,
+            Tiles.hole.id,
+            Tiles.cactus.id
+        },
+
+        Tiles.sand.id: {
+            Tiles.dirt.id,
+            Tiles.grass.id,
+            Tiles.snow.id,
+            Tiles.water.id,
+            Tiles.hole.id
+        },
+
+        Tiles.snow.id: {
+            Tiles.dirt.id,
+            Tiles.grass.id,
+            Tiles.sand.id,
+            Tiles.water.id,
+            Tiles.hole.id,
+            Tiles.cactus.id,
+            Tiles.ice.id
+        },
+
+        Tiles.water.id: {
+            Tiles.dirt.id,
+            Tiles.grass.id,
+            Tiles.sand.id,
+            Tiles.snow.id,
+            Tiles.cactus.id,
+            Tiles.ice.id
+        },
+
+        Tiles.ice.id: {
+            Tiles.dirt.id,
+            Tiles.snow.id,
+            Tiles.water.id,
+            Tiles.hole.id,
+            Tiles.iceberg.id
+        },
+
+        Tiles.hole.id: {
+            Tiles.dirt.id,
+            Tiles.grass.id,
+            Tiles.sand.id,
+            Tiles.snow.id,
+            Tiles.cactus.id,
+            Tiles.ice.id
+        }
     }
 
     @staticmethod
-    def get_transitions(world: World, x: int, y: int, tile: Tile) -> list:
+    def connector(world: World, tile: Tile, x: int, y: int) -> list:
         """ Get transition sprites for a tile based on its neighbors """
         if tile.id not in Tilemap.CONNECTIONS:
             return []
@@ -48,7 +107,7 @@ class Tilemap:
         for dx, dy, sprite_index in directions:
             neighbor = world.get_tile(x + dx, y + dy)
             if neighbor.id in valid_neighbors:
-                transitions.append((tile.sprites[sprite_index], (x, y)))
+                transitions.append((tile.sprites[sprite_index]))
                 # Mark which sides have transitions
                 if dy == -1: has_transition['top'] = True
                 elif dy == 1: has_transition['bottom'] = True
@@ -63,15 +122,10 @@ class Tilemap:
             ( 1,  1, 8,  ('right', 'bottom'))     # Bottom-right
         ]
 
-        for dx, dy, sprite_index, (side1, side2) in corners:
-            if has_transition[side1] and has_transition[side2]:
+        for dx, dy, sprite_index, (a, b) in corners:
+            if has_transition[a] and has_transition[b]:
                 neighbor = world.get_tile(x + dx, y + dy)
                 if neighbor.id in valid_neighbors:
-                    transitions.append((tile.sprites[sprite_index], (x, y)))
+                    transitions.append((tile.sprites[sprite_index]))
 
         return transitions
-
-    @staticmethod
-    def connector(world: World, tile: Tile, x: int, y: int) -> list:
-        """Returns list of transition sprites needed for this tile"""
-        return Tilemap.get_transitions(world, x, y, tile)

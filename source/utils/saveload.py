@@ -151,6 +151,8 @@ class Saveload:
                 'yd': player.yd,
                 'fx': player.facing.x,
                 'fy': player.facing.y,
+                'cx': player.cx,
+                'cy': player.cy,
                 'health': player.health,
                 'energy': player.energy
             }
@@ -165,10 +167,12 @@ class Saveload:
                     'y': mob.position.y,
                     'fx': mob.facing.x,
                     'fy': mob.facing.y,
+                    'cx': mob.cx,
+                    'cy': mob.cy,
                     'health': mob.health,
                     'hostile': mob.hostile,
                     'frame': mob.frame,
-                    'anim_timer': mob.timer
+                    'timer': mob.timer
                 })
             pickle.dump(mob_data, level)
 
@@ -208,12 +212,18 @@ class Saveload:
             player_data = pickle.load(level)
             player.position.x = float(player_data['x'])
             player.position.y = float(player_data['y'])
+
             player.offset.x = float(player_data['xo'])
             player.offset.y = float(player_data['yo'])
+
             player.xd = player_data['xd']
             player.yd = player_data['yd']
+
             player.facing.x = float(player_data['fx'])
             player.facing.y = float(player_data['fy'])
+
+            player.cx = player_data['cx']
+            player.cy = player_data['cy']
             player.health = player_data['health']
             player.energy = player_data['energy']
 
@@ -229,10 +239,12 @@ class Saveload:
                     # Restore mob state
                     mob.position = Vector2(mob_info['x'], mob_info['y'])
                     mob.facing = Vector2(mob_info['fx'], mob_info['fy'])
+                    mob.cx = mob_info['cx']
+                    mob.cy = mob_info['cy']
                     mob.health = mob_info['health']
                     mob.hostile = mob_info['hostile']
                     mob.frame = mob_info['frame']
-                    mob.timer = mob_info['anim_timer']
+                    mob.timer = mob_info['timer']
 
                     world.mobs.append(mob)
             except EOFError:

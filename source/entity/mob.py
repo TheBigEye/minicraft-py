@@ -26,8 +26,8 @@ class Mob:
         self.speed = speed
         self.hostile = hostile
 
-        self.position: Vector2 = Vector2(0.0, 0.0)
-        self.facing: Vector2 = Vector2(0.0, 1.0)
+        self.position: Vector2 = Vector2(0, 0)
+        self.facing: Vector2 = Vector2(0, 1)
 
         # Mob local chunk position
         self.cx: int = 0
@@ -90,7 +90,7 @@ class Mob:
 
 
     def update(self, ticks: int, world: World) -> None:
-        # Update brain every other tick
+        # Update brain
         if ticks % 2 == 0:
             self.brain.update(world)
 

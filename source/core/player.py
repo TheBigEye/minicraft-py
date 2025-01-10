@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import random
+from random import randint
 from typing import TYPE_CHECKING
 
 import pygame
-from pygame import Rect, Surface, Vector2
+from pygame import Surface, Vector2
 
 from source.game import Game
 from source.level.tile.tiles import Tiles
@@ -25,13 +25,13 @@ if TYPE_CHECKING:
 class Player:
     def __init__(self): # type: () -> None
         # Player's world coordinates
-        self.position: Vector2 = Vector2(0.0, 0.0)
+        self.position: Vector2 = Vector2(0, 0)
 
         # World grid offset (used by hitbox and tile highlight)
-        self.offset: Vector2 = Vector2(0.0, 0.0)
+        self.offset: Vector2 = Vector2(0, 0)
 
         # The direction where the player is facing
-        self.facing: Vector2 = Vector2(0.0, 1.0)
+        self.facing: Vector2 = Vector2(0, 1)
 
         # Player's local chunk position
         self.cx: int = 0
@@ -54,22 +54,25 @@ class Player:
         self.sprite = Sprites.PLAYER[1][0]
         self.speed = 0.08
 
-        self.KNOCKBACK: float = 0.4
+        self.KNOCKBACK: float = 0.40
 
 
-    def initialize(self, world, sx, sy):
+    def initialize(self, world: World, sx: float, sy: float) -> None:
         self.world = world
-        # Convert initial coordinates to bit-shifted system
+
         self.position = Vector2(sx, sy)
+
+        self.cx = int(self.position.x) // CHUNK_SIZE
+        self.cy = int(self.position.y) // CHUNK_SIZE
 
 
     def swimming(self) -> bool:
-        """Check if the player is swimming (in water) """
+        """ Check if the player is swimming (in water) """
         tile: Tile = self.world.get_tile(int(self.position.x), int(self.position.y))
         return tile.liquid
 
 
-    def move(self, mx, my):
+    def move(self, mx: float, my: float) -> None:
         # Convert target movement to bit-shifted system
         target_x = int(mx * TILE_BITS)
         target_y = int(my * TILE_BITS)
@@ -100,7 +103,7 @@ class Player:
                 tile = self.world.get_tile(tile_x, tile_y)
 
                 if tile.id == Tiles.cactus.id:
-                    self.hurt(2)
+                    self.hurt(randint(1, 2))
 
                 if not tile.solid:
                     # Update position in bit-shifted coordinates
@@ -131,10 +134,10 @@ class Player:
         self.energy = max(0, self.energy - int(0.32 * self.MAX_STAT))
 
         tile: Tile = self.world.get_tile(self.xd, self.yd)
-        tile.hurt(self.world, self.xd, self.yd, random.randint(1, 3))
+        tile.hurt(self.world, self.xd, self.yd, randint(1, 3))
 
 
-    def render(self, screen):
+    def render(self, screen: Surface) -> list:
         sprites = []
 
         # Tile highlight

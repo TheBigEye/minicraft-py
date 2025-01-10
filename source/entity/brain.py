@@ -18,7 +18,6 @@ class State(Enum):
     MOVING: int     = 1
     WAITING: int    = 2
     CHASING: int    = 3
-    WANDERING: int  = 4
 
 
 class Brain:
@@ -26,7 +25,13 @@ class Brain:
         self.mob = mob
         self.state = State.IDLE
         self.target_pos = Vector2(0, 0)
-        self.safety_distance = 0.8  # Distance for avoid solid tiles or obstacles from path
+
+        # Distance for avoid solid tiles or obstacles from path
+        self.safety_distance = 0.80
+
+        self.directions = [
+            (0, 1), (1, 0), (0, -1), (-1, 0)
+        ]
 
     def update(self, world: World) -> None:
         pass
@@ -37,9 +42,8 @@ class Brain:
         if tile.solid or tile.liquid:
             return False
 
-        # Only check adjacent cardinal tiles
-        cardinal_directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
-        for dx, dy in cardinal_directions:
+        # Only check adjacent tiles
+        for dx, dy in self.directions:
             check_x = int(x) + dx
             check_y = int(y) + dy
 
@@ -59,7 +63,7 @@ class Brain:
             best_pos = None
             min_distance = float('inf')
 
-            # Search in a cross pattern (cardinal directions only!)
+            # Search in a cross pattern
             for dist in range(1, 4):
                 for dx, dy in [(dist, 0), (-dist, 0), (0, dist), (0, -dist)]:
                     test_pos = (end_pos[0] + dx, end_pos[1] + dy)
@@ -77,23 +81,22 @@ class Brain:
         frontier = [(0, start_pos)]
         came_from = {start_pos: None}
         cost_so_far = {start_pos: 0}
-        directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
 
         while frontier:
             _, current = heapq.heappop(frontier)
             if current == end_pos:
                 break
 
-            for dx, dy in directions:
+            for dx, dy in self.directions:
                 next_pos = (current[0] + dx, current[1] + dy)
                 if not self.valid_position(world, next_pos[0], next_pos[1]):
                     continue
 
-                new_cost = cost_so_far[current] + 1  # Cost is always 1 for cardinal movements
+                new_cost = cost_so_far[current] + 1  # Cost is always 1
 
                 if next_pos not in cost_so_far or new_cost < cost_so_far[next_pos]:
                     cost_so_far[next_pos] = new_cost
-                    # Using Manhattan distance for heuristic since we only use cardinal movements
+                    # Using Manhattan distance for heuristic
                     priority = new_cost + abs(end_pos[0] - next_pos[0]) + abs(end_pos[1] - next_pos[1])
                     heapq.heappush(frontier, (priority, next_pos))
                     came_from[next_pos] = current
@@ -117,6 +120,7 @@ class PassiveBrain(Brain):
         self.wander_timer = 0
         self.wander_cooldown = 60
 
+
     def update(self, world: World) -> None:
         if self.state == State.IDLE:
             self.wander_timer += 1
@@ -136,15 +140,14 @@ class PassiveBrain(Brain):
 
             next_pos = path[0]
             self.mob.move(world, next_pos.x, next_pos.y)
-            if self.mob.position.distance_to(self.target_pos) < 0.5:
+            if self.mob.position.distance_to(self.target_pos) < 0.50:
                 self.state = State.IDLE
 
+
     def random_target(self, world: World) -> None:
-        # Modified to only try cardinal directions
-        directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
         for _ in range(10):
-            direction = random.choice(directions)
-            dist = random.randint(3, 8)
+            direction = random.choice(self.directions)
+            dist = random.randint(2, 4)
             new_x = self.mob.position.x + direction[0] * dist
             new_y = self.mob.position.y + direction[1] * dist
 
@@ -163,19 +166,24 @@ class HostileBrain(Brain):
 
         self.path = []
         self.path_timer = 0
-        self.path_range = 4.5
+        self.path_range = 4.50
 
-        self.target_dist = 0.5
+        self.target_dist = 0.50
         self.update_rate = 10
 
         self.passive_brain = PassiveBrain(mob)
 
-    def update(self, world: World) -> None:
-        player_pos = world.player.position
-        dist_to_player = self.mob.position.distance_to(player_pos)
 
-        if dist_to_player <= self.path_range:
-            if dist_to_player <= self.target_dist:
+    def update(self, world: World) -> None:
+        # BUG BUG: There is something here that can freeze the game
+        # randomly, probably the algorithm is trying to trace an
+        # impossible path and that must be hanging the CPU
+
+        player_pos = world.player.position
+        player_dist = self.mob.position.distance_to(player_pos)
+
+        if player_dist <= self.path_range:
+            if player_dist <= self.target_dist:
                 self.state = State.WAITING
                 return
 
@@ -185,7 +193,7 @@ class HostileBrain(Brain):
                 self.path_timer = 0
 
                 if not self.path:
-                    self.state = State.WANDERING
+                    self.state = State.IDLE
                     self.passive_brain.update(world)
                     return
 
@@ -196,14 +204,14 @@ class HostileBrain(Brain):
                 if not self.valid_position(world, next_point.x, next_point.y):
                     self.path = self.find_path(world, self.mob.position, player_pos)
                     if not self.path:
-                        self.state = State.WANDERING
+                        self.state = State.IDLE
                         self.passive_brain.update(world)
                         return
 
                 self.mob.move(world, next_point.x, next_point.y)
-                if self.mob.position.distance_to(next_point) < 0.5:
+                if self.mob.position.distance_to(next_point) < 0.50:
                     self.path.pop(0)
 
         else:
-            self.state = State.WANDERING
+            self.state = State.MOVING
             self.passive_brain.update(world)

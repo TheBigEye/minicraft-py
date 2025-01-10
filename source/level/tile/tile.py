@@ -62,7 +62,7 @@ class Tile:
         if self.id not in {9, 10, 11}:  # Tree IDs
             world.tile_buffer.append((self.sprite, (x, y)))
             # Add transitions to the appropriate buffer
-            for sprite, pos in self.connectors:
+            for sprite in self.connectors:
                 world.tile_buffer.append((sprite, (x, y)))
         else:
             # Tree rendering

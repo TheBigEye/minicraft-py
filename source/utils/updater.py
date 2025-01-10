@@ -9,6 +9,7 @@ from source.game import Game
 from source.screen.sprites import Sprites
 from source.sound import Sound
 from source.utils.saveload import Saveload
+from source.utils.tests import Tests
 
 if TYPE_CHECKING:
     from source.core.player import Player
@@ -18,7 +19,9 @@ if TYPE_CHECKING:
 class Updater:
 
     def __init__(self, world: World, player: Player) -> None:
-        self.ticks = 0
+        # By default is 3000, so the world starts at evening
+        self.ticks = 3000
+
         self.timer = 0
         self.world = world
         self.player = player
@@ -27,7 +30,7 @@ class Updater:
         self.last_shift = 0
         self.last_attack = 0
 
-        self.SHIFT_TIME = 0.5
+        self.SHIFT_TIME = 0.50
         self.ATTACK_TIME = 0.05
         self.held_attack = False
 
@@ -68,7 +71,7 @@ class Updater:
 
             # Apply swimming slowdown if necessary
             if self.player.swimming():
-                movement *= 0.5
+                movement *= 0.50
 
             # Apply movement vector
             self.player.move(
@@ -104,6 +107,11 @@ class Updater:
             if self._cooldown(self.last_shift, self.SHIFT_TIME):
                 if event[pygame.K_s]:
                     Saveload.save(self, self.world, self.player)
+                    Sound.play("eventSound")
+                    self.last_shift = now
+
+                elif event[pygame.K_g]:
+                    Tests.spawn_mobs(self.world, self.player)
                     Sound.play("eventSound")
                     self.last_shift = now
 
