@@ -202,8 +202,7 @@ class World:
 
     def get_tile(self, x: int, y: int) -> Tile | None:
         """ Get the tile at coordinates in the world  """
-        coords = (x // CHUNK_SIZE, y // CHUNK_SIZE)
-        if chunk := self.chunks.get(coords):
+        if chunk := self.chunks.get((x // CHUNK_SIZE, y // CHUNK_SIZE)):
             return chunk.get(x % CHUNK_SIZE, y % CHUNK_SIZE)
         return None
 
@@ -444,18 +443,21 @@ class World:
 
     def spawn_mobs(self) -> None:
         """ Spawn initial mobs in the world """
+        mobs = (
+            Mobs.sheep.id, Mobs.pig.id, Mobs.vamp.id
+        )
 
-        for _ in range(16):  # Try spawn 16 random mobs
+        for _ in range(6):  # Try spawn 6 random mobs
             # Pick random coordinates near spawn
-            x = self.sx + randint(-25, 25)
-            y = self.sy + randint(-25, 25)
+            x = self.sx + randint(-8, 8)
+            y = self.sy + randint(-8, 8)
 
             # Check if spawn location is valid (not in water/solid blocks)
             tile: Tile = self.get_tile(int(x), int(y))
-            if not tile.solid and not tile.liquid:
+            if tile and not tile.solid and not tile.liquid:
 
                 # Create random mob
-                mob_type = choice([Mobs.sheep.id, Mobs.pig.id, Mobs.vamp.id])
+                mob_type = choice(mobs)
                 mob = Mobs.from_id(mob_type).clone()
                 mob.position = Vector2(x, y)
 

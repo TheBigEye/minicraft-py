@@ -105,7 +105,7 @@ class Tilemap:
         # Check sides first
         for dx, dy, sprite_index in directions:
             neighbor = world.get_tile(x + dx, y + dy)
-            if neighbor.id in valid_neighbors:
+            if neighbor and neighbor.id in valid_neighbors:
                 transitions.append((tile.sprites[sprite_index]))
                 # Mark which sides have transitions
                 if dy == -1: has_transition['top'] = True
@@ -124,7 +124,7 @@ class Tilemap:
         for dx, dy, sprite_index, (a, b) in corners:
             if has_transition[a] and has_transition[b]:
                 neighbor = world.get_tile(x + dx, y + dy)
-                if neighbor.id in valid_neighbors:
+                if neighbor and neighbor.id in valid_neighbors:
                     transitions.append((tile.sprites[sprite_index]))
 
         return transitions

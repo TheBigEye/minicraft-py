@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import os
+import pickletools
+
 from pickle import dumps, loads
 from typing import Dict, Tuple
 
@@ -81,7 +83,7 @@ class Region:
             cy: Local chunk Y coordinate (0-15)
             data: Chunk data to write
         """
-        chunk_data = dumps(data, protocol=5)
+        chunk_data = pickletools.optimize(dumps(data, protocol=5))
         chunk_size = len(chunk_data)
 
         with open(self.filename, 'r+b') as f:

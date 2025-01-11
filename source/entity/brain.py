@@ -40,7 +40,7 @@ class Brain:
     def valid_position(self, world: World, x: float, y: float) -> bool:
         # Check current tile ...
         tile: Tile = world.get_tile(int(x), int(y))
-        if tile is None or tile.solid or tile.liquid:
+        if not tile or tile.solid or tile.liquid:
             return False
 
         # Only check adjacent tiles
@@ -49,7 +49,7 @@ class Brain:
             check_y = int(y) + dy
 
             nearby: Tile = world.get_tile(check_x, check_y)
-            if nearby is None or nearby.solid or nearby.liquid:
+            if not nearby or nearby.solid or nearby.liquid:
                 return False
 
         return True
@@ -60,7 +60,7 @@ class Brain:
         end_pos = (int(end.x), int(end.y))
 
         # First check if start position is in a loaded chunk
-        if world.get_tile(start_pos[0], start_pos[1]) is None:
+        if not world.get_tile(start_pos[0], start_pos[1]):
             return []
 
         # Check if the final position is valid, else find nearest valid position
@@ -72,14 +72,14 @@ class Brain:
             for dist in range(1, 4):
                 for dx, dy in [(dist, 0), (-dist, 0), (0, dist), (0, -dist)]:
                     test_pos = (end_pos[0] + dx, end_pos[1] + dy)
-                    if world.get_tile(test_pos[0], test_pos[1]) is not None and \
+                    if world.get_tile(test_pos[0], test_pos[1]) and \
                     self.valid_position(world, test_pos[0], test_pos[1]):
                         current_dist = abs(dx) + abs(dy)  # Manhattan distance
                         if current_dist < min_distance:
                             min_distance = current_dist
                             best_pos = test_pos
 
-            if best_pos is None:
+            if not best_pos:
                 return []
             end_pos = best_pos
 
@@ -98,7 +98,7 @@ class Brain:
                 next_pos = (current[0] + dx, current[1] + dy)
 
                 # Check if next position is in a loaded chunk
-                if world.get_tile(next_pos[0], next_pos[1]) is None or \
+                if not world.get_tile(next_pos[0], next_pos[1]) or \
                 not self.valid_position(world, next_pos[0], next_pos[1]):
                     continue
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import pickle
+import pickletools
 import struct
 
 from typing import TYPE_CHECKING
@@ -71,7 +72,7 @@ class Saveload:
             level.write(struct.pack('!B', 2))  # Version 2
 
             # Dump the entire save data into the file
-            pickle.dump(data, level, protocol=5)
+            level.write(pickletools.optimize(pickle.dumps(data, protocol=5)))
 
 
         # Save modified chunks to their region files

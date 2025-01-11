@@ -67,8 +67,15 @@ class Player:
 
 
     def swimming(self) -> bool:
-        """ Check if the player is swimming (in water) """
-        tile: Tile = self.world.get_tile(int(self.position.x), int(self.position.y))
+        """ Check if the player is swimming """
+        # Convert player's position to tile coordinates
+        tile_x = int(self.position.x * TILE_BITS) >> POSITION_SHIFT
+        tile_y = int(self.position.y * TILE_BITS) >> POSITION_SHIFT
+
+        # Get the tile at the calculated position
+        tile: Tile = self.world.get_tile(tile_x, tile_y)
+
+        # Return whether the tile is liquid
         return tile.liquid
 
 
@@ -171,8 +178,8 @@ class Player:
         # Player rendering
         if self.swimming():
             half_sprite = self.sprite.subsurface((0, 0, self.sprite.get_width(), self.sprite.get_height() // 2))
-            sprites.append((Sprites.WATER_SWIM[0 if self.cursor else 1], (rx, ry - 8)))
-            sprites.append((half_sprite, (rx, ry - 4)))
+            sprites.append((Sprites.WATER_SWIM[0 if self.cursor else 1], (rx, ry + 2)))
+            sprites.append((half_sprite, (rx, ry + 4)))
         else:
             sprites.append((self.sprite, (rx, ry)))
 
