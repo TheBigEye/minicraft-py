@@ -5,8 +5,7 @@ from typing import TYPE_CHECKING
 from pygame import Surface, Vector2
 
 from source.entity.brain import HostileBrain, PassiveBrain, State
-from source.level.tile.tile import Tile
-from source.utils.constants import CHUNK_SIZE, POSITION_SHIFT, TILE_BITS
+from source.utils.constants import CHUNK_SIZE
 
 if TYPE_CHECKING:
     from source.level.world import World
@@ -19,7 +18,7 @@ class Mob:
         'position', 'facing', 'brain', 'cx', 'cy'
     ]
 
-    def __init__(self, id: int, sprites: list[Surface], health: int, speed: float, hostile: bool = False):
+    def __init__(self, id: int, sprites: list[list[Surface]], health: int, speed: float, hostile: bool = False):
         self.id = id
         self.sprites = sprites
         self.health = health
@@ -43,8 +42,9 @@ class Mob:
 
         self.brain = HostileBrain(self) if hostile else PassiveBrain(self)
 
+
     def move(self, world: World, target_x: float, target_y: float) -> None:
-        """Move the mob towards a target position using grid-based movement"""
+        """ Move the mob towards a target position using grid-based movement """
         # Convert current and target positions to tile coordinates
         current_tile_x = int(self.position.x)
         current_tile_y = int(self.position.y)

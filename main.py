@@ -56,7 +56,7 @@ def main() -> None:
     nano_time: float = 1000000000.0 / GAME_TICKS
 
     timer = time() * 1000
-    delta: int = 0
+    delta: float = 0.00
 
     running: bool = True
     drawing: bool = False
@@ -116,6 +116,7 @@ def main() -> None:
         if ((time() * 1000) - timer) > 1000:
             if Game.debug:
                 print(f"> render time: {last_screen:.2f}ms")
+                #print(f"> FPS: {clock.get_fps():.2f}")
 
             timer += 1000
 

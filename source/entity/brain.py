@@ -1,23 +1,23 @@
 from __future__ import annotations
 
 import heapq
-import random
-from math import cos, sin
-from typing import TYPE_CHECKING
-from pygame import Vector2
 from enum import Enum
+from random import choice, randint
+from typing import TYPE_CHECKING
+
+from pygame import Vector2
 
 if TYPE_CHECKING:
     from source.entity.mob import Mob
-    from source.level.tile.tile import Tile
+    from source.level.tile import Tile
     from source.level.world import World
 
 
 class State(Enum):
-    IDLE: int       = 0
-    MOVING: int     = 1
-    WAITING: int    = 2
-    CHASING: int    = 3
+    IDLE    = 0
+    MOVING  = 1
+    WAITING = 2
+    CHASING = 3
 
 
 class Brain:
@@ -36,10 +36,11 @@ class Brain:
     def update(self, world: World) -> None:
         pass
 
+    # NOTE: debug this
     def valid_position(self, world: World, x: float, y: float) -> bool:
         # Check current tile ...
         tile: Tile = world.get_tile(int(x), int(y))
-        if tile.solid or tile.liquid:
+        if tile is None or tile.solid or tile.liquid:
             return False
 
         # Only check adjacent tiles
@@ -48,7 +49,7 @@ class Brain:
             check_y = int(y) + dy
 
             nearby: Tile = world.get_tile(check_x, check_y)
-            if nearby.solid or nearby.liquid:
+            if nearby is None or nearby.solid or nearby.liquid:
                 return False
 
         return True
@@ -57,6 +58,10 @@ class Brain:
     def find_path(self, world: World, start: Vector2, end: Vector2) -> list:
         start_pos = (int(start.x), int(start.y))
         end_pos = (int(end.x), int(end.y))
+
+        # First check if start position is in a loaded chunk
+        if world.get_tile(start_pos[0], start_pos[1]) is None:
+            return []
 
         # Check if the final position is valid, else find nearest valid position
         if not self.valid_position(world, end_pos[0], end_pos[1]):
@@ -67,7 +72,8 @@ class Brain:
             for dist in range(1, 4):
                 for dx, dy in [(dist, 0), (-dist, 0), (0, dist), (0, -dist)]:
                     test_pos = (end_pos[0] + dx, end_pos[1] + dy)
-                    if self.valid_position(world, test_pos[0], test_pos[1]):
+                    if world.get_tile(test_pos[0], test_pos[1]) is not None and \
+                    self.valid_position(world, test_pos[0], test_pos[1]):
                         current_dist = abs(dx) + abs(dy)  # Manhattan distance
                         if current_dist < min_distance:
                             min_distance = current_dist
@@ -88,15 +94,18 @@ class Brain:
                 break
 
             for dx, dy in self.directions:
+                # NOTE: debug this
                 next_pos = (current[0] + dx, current[1] + dy)
-                if not self.valid_position(world, next_pos[0], next_pos[1]):
+
+                # Check if next position is in a loaded chunk
+                if world.get_tile(next_pos[0], next_pos[1]) is None or \
+                not self.valid_position(world, next_pos[0], next_pos[1]):
                     continue
 
-                new_cost = cost_so_far[current] + 1  # Cost is always 1
+                new_cost = cost_so_far[current] + 1 # Cost is always 1
 
                 if next_pos not in cost_so_far or new_cost < cost_so_far[next_pos]:
                     cost_so_far[next_pos] = new_cost
-                    # Using Manhattan distance for heuristic
                     priority = new_cost + abs(end_pos[0] - next_pos[0]) + abs(end_pos[1] - next_pos[1])
                     heapq.heappush(frontier, (priority, next_pos))
                     came_from[next_pos] = current
@@ -117,7 +126,7 @@ class Brain:
 class PassiveBrain(Brain):
     def __init__(self, mob: Mob):
         super().__init__(mob)
-        self.wander_timer = 0
+        self.wander_timer = 30
         self.wander_cooldown = 60
 
 
@@ -146,8 +155,8 @@ class PassiveBrain(Brain):
 
     def random_target(self, world: World) -> None:
         for _ in range(10):
-            direction = random.choice(self.directions)
-            dist = random.randint(2, 4)
+            direction = choice(self.directions)
+            dist = randint(2, 4)
             new_x = self.mob.position.x + direction[0] * dist
             new_y = self.mob.position.y + direction[1] * dist
 

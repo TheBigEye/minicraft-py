@@ -1,7 +1,7 @@
 from pygame import mixer
 
 class Sound:
-    sounds = {}
+    sounds: dict[str, mixer.Sound] = {}
 
     @staticmethod
     def initialize():

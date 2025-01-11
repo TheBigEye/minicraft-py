@@ -47,12 +47,12 @@ class Tile:
 
 
     def hurt(self, world: World, x: int, y: int, damage: int) -> None:
-        if self.health is not None:
+        if self.health > 0:
             self.health -= damage
 
             Sound.play("genericHurt")
 
-            if (self.health <= 0) and (self.parent is not None):
+            if (self.health <= 0) and (self.parent > 0):
                 world.set_tile(x, y, self.parent)
 
 

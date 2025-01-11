@@ -20,19 +20,19 @@ class Updater:
 
     def __init__(self, world: World, player: Player) -> None:
         # By default is 3000, so the world starts at evening
-        self.ticks = 3000
 
-        self.timer = 0
-        self.world = world
-        self.player = player
+        self.timer: int = 0
+        self.ticks: int = 3000
+        self.world: World = world
+        self.player: Player = player
 
         # Add cooldown timers
-        self.last_shift = 0
-        self.last_attack = 0
+        self.last_shift: float = 0.00
+        self.last_attack: float = 0.00
 
-        self.SHIFT_TIME = 0.50
-        self.ATTACK_TIME = 0.05
-        self.held_attack = False
+        self.SHIFT_TIME: float = 0.50
+        self.ATTACK_TIME: float = 0.05
+        self.held_attack: bool = False
 
 
     def _cooldown(self, last: float, time: float) -> bool:
@@ -54,15 +54,17 @@ class Updater:
         if event[pygame.K_UP] or event[pygame.K_w]:
             movement.y -= 1
             self.player.sprite = Sprites.PLAYER[0][self.timer]
-        if event[pygame.K_DOWN] or event[pygame.K_s]:
+        elif event[pygame.K_DOWN] or event[pygame.K_s]:
             movement.y += 1
             self.player.sprite = Sprites.PLAYER[1][self.timer]
+
         if event[pygame.K_LEFT] or event[pygame.K_a]:
             movement.x -= 1
             self.player.sprite = Sprites.PLAYER[2][self.timer]
-        if event[pygame.K_RIGHT] or event[pygame.K_d]:
+        elif event[pygame.K_RIGHT] or event[pygame.K_d]:
             movement.x += 1
             self.player.sprite = Sprites.PLAYER[3][self.timer]
+
 
         # Normalize diagonal movement
         if movement.length() > 0:
@@ -83,6 +85,7 @@ class Updater:
             if self.ticks % 6 == 0:
                 self.timer = (self.timer + 1) % 2
 
+
         # Handle attack (press-release check)
         if event[pygame.K_c]:
             if not self.held_attack and self._cooldown(self.last_attack, self.ATTACK_TIME):
@@ -92,6 +95,7 @@ class Updater:
         else:
             self.held_attack = False
 
+
         # Handle F3 debug toggle
         if event[pygame.K_F3]:
             now = pygame.time.get_ticks() / 1000
@@ -99,6 +103,7 @@ class Updater:
             if self._cooldown(self.last_shift, self.SHIFT_TIME):
                 Game.debug = not Game.debug
                 self.last_shift = now
+
 
         # Handle SHIFT+ combinations
         if event[pygame.K_LSHIFT]:
@@ -108,12 +113,13 @@ class Updater:
                 if event[pygame.K_s]:
                     Saveload.save(self, self.world, self.player)
                     Sound.play("eventSound")
-                    self.last_shift = now
 
                 elif event[pygame.K_g]:
                     Tests.spawn_mobs(self.world, self.player)
                     Sound.play("eventSound")
-                    self.last_shift = now
+
+                self.last_shift = now
+
 
         ## Update world and player
         self.world.update(self.ticks)

@@ -13,10 +13,10 @@ class Region:
     """ Handles chunk storage in region files using a format similar to Minecraft's MCRegion """
 
     REGION_SIZE = 16  # 16x16 chunks per region, 8x8 tiles per chunk :)
-    SECTOR_SIZE = 4096 # Disks can quickly access 4096 byte sectors, so we can load things much faster
+    SECTOR_SIZE = 4096 # Disks quickly access 4096 byte sectors, so we can load things much faster
     HEADER_SIZE = (REGION_SIZE * REGION_SIZE) * 8  # 16x16 chunks * 8 bytes per entry
 
-    __slots__ = ('chunks_dir', 'filename', 'positions')
+    __slots__ = ['chunks_dir', 'filename', 'positions']
 
     def __init__(self, world_dir, rx, ry): # type: (str, int, int) -> None
         """ Initialize a region file handler
@@ -81,7 +81,7 @@ class Region:
             cy: Local chunk Y coordinate (0-15)
             data: Chunk data to write
         """
-        chunk_data = dumps(data)
+        chunk_data = dumps(data, protocol=5)
         chunk_size = len(chunk_data)
 
         with open(self.filename, 'r+b') as f:

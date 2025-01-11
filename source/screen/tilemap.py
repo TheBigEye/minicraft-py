@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from source.level.tile.tiles import Tiles
+from source.level.tiles import Tiles
 
 if TYPE_CHECKING:
-    from source.level.tile.tile import Tile
+    from source.level.tile import Tile
     from source.level.world import World
 
 
@@ -50,7 +50,6 @@ class Tilemap:
             Tiles.water.id,
             Tiles.hole.id,
             Tiles.cactus.id,
-            Tiles.ice.id
         },
 
         Tiles.water.id: {

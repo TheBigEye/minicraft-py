@@ -7,7 +7,7 @@ import pygame
 from pygame import Surface, Vector2
 
 from source.game import Game
-from source.level.tile.tiles import Tiles
+from source.level.tiles import Tiles
 from source.sound import Sound
 from source.screen.sprites import Sprites
 
@@ -19,7 +19,7 @@ from source.utils.constants import (
 
 if TYPE_CHECKING:
     from source.level.world import World
-    from source.level.tile.tile import Tile
+    from source.level.tile import Tile
 
 
 class Player:

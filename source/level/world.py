@@ -9,16 +9,16 @@ from source.entity.mobs import Mobs
 from source.game import Game
 from source.level.chunk import Chunk
 from source.level.perlin import Perlin
-from source.level.tile.tiles import Tiles
+from source.level.tiles import Tiles
 from source.screen.debug import Debug
 from source.screen.tilemap import Tilemap
-from source.utils.constants import *
 from source.utils.region import Region
+from source.utils.constants import *
 
 if TYPE_CHECKING:
     from source.core.player import Player
     from source.entity.mob import Mob
-    from source.level.tile.tile import Tile
+    from source.level.tile import Tile
 
 
 class World:
@@ -36,8 +36,8 @@ class World:
         self.sx: float = 0.00
         self.sy: float = 0.00
 
-        self.player = player
-        self.loaded = False
+        self.player: Player = player
+        self.loaded: bool = False
 
         self.tile_buffer = []
         self.depth_buffer = []
@@ -81,114 +81,100 @@ class World:
                 [Tiles.from_id(tile_id).clone() for tile_id in row]
                 for row in data['tiles']
             ]
-            chunk: Chunk = Chunk(cx, cy, chunk_tiles)
-            chunk.modified = False  # Loaded chunks start unmodified
+            self.chunks[(cx, cy)] = Chunk(cx, cy, chunk_tiles)
+            self.chunks[(cx, cy)].modified = False  # Loaded chunks start unmodified
+            return
 
-        else:
-            # Generate new chunk
-            chunk_tiles = Chunk.empty()
+        # Generate new chunk
+        chunk_tiles = Chunk.empty()
+        tree_tiles = { Tiles.oak_tree.id, Tiles.pine_tree.id, Tiles.birch_tree.id }
 
-            # Single pass: Generate terrain and trees
-            for h in range(CHUNK_SIZE):
-                wy = cy * CHUNK_SIZE + h
-                ty = wy * Perlin.NOISE_SCALE
+        # Single pass: Generate terrain and trees
+        for h in range(CHUNK_SIZE):
+            wy = cy * CHUNK_SIZE + h
+            ty = wy * Perlin.NOISE_SCALE
 
-                for w in range(CHUNK_SIZE):
-                    wx = cx * CHUNK_SIZE + w
-                    tx = wx * Perlin.NOISE_SCALE
+            for w in range(CHUNK_SIZE):
+                wx = cx * CHUNK_SIZE + w
+                tx = wx * Perlin.NOISE_SCALE
 
-                    elevation = Perlin.heightmap(self.perm, tx, ty)
-                    humidity = Perlin.humidity(self.perm, tx, ty)
-                    temperature = Perlin.temperature(self.perm, tx, ty)
+                # Get terrain parameters
+                temp = Perlin.temperature(self.perm, tx, ty)
+                humidity = Perlin.humidity(self.perm, tx, ty)
+                elevation = Perlin.heightmap(self.perm, tx, ty)
 
-                    tile = Tiles.grass.clone()
-                    place_tree = False
-                    tree_type = None
+                # Initialize default values
+                tile = Tiles.grass.clone()
+                tree_type = None
 
-                    # Generate base terrain
+                # Water bodies
+                if elevation < 0.32:
                     if elevation < 0.28:
                         tile = Tiles.ocean.clone()
-                    elif (elevation > 0.28) and (elevation < 0.32):
-                        tile = Tiles.iceberg.clone() if temperature < 0.25 else Tiles.ocean.clone()
-                    elif (elevation > 0.32) and (elevation < 0.42):
-                        tile = Tiles.ice.clone() if temperature < 0.25 else Tiles.water.clone()
-
-                    elif (elevation > 0.42) and (elevation < 0.60):
-                        if temperature < 0.25:
-                            tile = Tiles.snow.clone()
-                        else:
-                            if random() < 0.025:
-                                tile = Tiles.cactus.clone()
-                            else:
-                                tile = Tiles.sand.clone()
-
-                    elif elevation < 1.75:
-                        # Cold regions
-                        if temperature < 0.25:
-                            tile = Tiles.snow.clone()
-                            if humidity > 0.40 and elevation > 0.75:
-                                place_tree = random() < 0.125  # 1/8 chance
-                                tree_type = Tiles.pine_tree
-
-                        # Cool/Temperate regions
-                        elif temperature < 0.70:
-                            tile = Tiles.grass.clone()
-                            if humidity > 0.40 and elevation > 0.50:
-                                place_tree = random() < 0.125  # 1/8 chance
-                                tree_type = Tiles.oak_tree
-
-                        # Warm/Hot regions
-                        else:
-                            if humidity < 0.30:
-                                tile = Tiles.sand.clone()
-                            else:
-                                tile = Tiles.grass.clone()
-                                if humidity > 0.60 and elevation > 0.60:
-                                    place_tree = random() < 0.125  # 1/8 chance
-                                    tree_type = Tiles.birch_tree if random() < 0.25 else Tiles.oak_tree
-
-                    # Mountain biomes
-                    elif elevation < 1.95:
-                        tile = Tiles.stone.clone()
                     else:
-                        tile = Tiles.gravel.clone()
+                        tile = Tiles.iceberg.clone() if temp < 0.25 else Tiles.ocean.clone()
 
-                    # Add base terrain tile first
-                    chunk_tiles[h][w] = tile
+                # Shallow water
+                elif elevation < 0.42:
+                    tile = Tiles.ice.clone() if temp < 0.25 else Tiles.water.clone()
 
-                    # Try placing a tree if conditions are met
-                    if place_tree and tree_type and not tile.solid:
-                        # Only try to place trees if we're not too close to chunk borders
-                        if (w > 1 and w < CHUNK_SIZE - 2 and
-                            h > 1 and h < CHUNK_SIZE - 2):
+                # Beach/Snow
+                elif elevation < 0.60:
+                    if temp < 0.25:
+                        tile = Tiles.snow.clone()
+                    else:
+                        tile = Tiles.cactus.clone() if random() < 0.025 else Tiles.sand.clone()
 
-                            # Check 3x3 area for existing trees
-                            can_place = True
-                            for check_y in range(h - 1, h + 2):
-                                for check_x in range(w - 1, w + 2):
-                                    if chunk_tiles[check_y][check_x]:
-                                        if chunk_tiles[check_y][check_x].id in {
-                                            Tiles.oak_tree.id,
-                                            Tiles.pine_tree.id,
-                                            Tiles.birch_tree.id
-                                        }:
-                                            can_place = False
-                                            break
-                                if not can_place:
-                                    break
+                # Main terrain
+                elif elevation < 1.75:
+                    # Cold regions
+                    if temp < 0.25:
+                        tile = Tiles.snow.clone()
+                        if humidity > 0.40 and elevation > 0.75:
+                            tree_type = Tiles.pine_tree
 
-                            if can_place:
-                                chunk_tiles[h][w] = tree_type.clone()
+                    # Cool/Temperate regions
+                    elif temp < 0.70:
+                        tile = Tiles.grass.clone()
+                        if humidity > 0.40 and elevation > 0.50:
+                            tree_type = Tiles.oak_tree
 
-                    # Check for spawnpoint
-                    if self.sx == 0 and self.sy == 0:
-                        if not tile.solid and not tile.liquid:
-                            self.sx = wx
-                            self.sy = wy
+                    # Warm/Hot regions
+                    else:
+                        tile = Tiles.sand.clone() if humidity < 0.30 else Tiles.grass.clone()
+                        if humidity > 0.60 and elevation > 0.60:
+                            tree_type = Tiles.birch_tree if random() < 0.25 else Tiles.oak_tree
 
-            chunk: Chunk = Chunk(cx, cy, chunk_tiles)
+                # Mountains
+                else:
+                    tile = Tiles.stone.clone() if elevation < 1.95 else Tiles.gravel.clone()
 
-        self.chunks[(cx, cy)] = chunk
+                # Add base terrain tile
+                chunk_tiles[h][w] = tile
+
+                # Try placing a tree
+                if (tree_type and not tile.solid and
+                    1 < w < CHUNK_SIZE - 2 and
+                    1 < h < CHUNK_SIZE - 2 and
+                    random() < 0.125):
+
+                    # Check 3x3 area for existing trees
+                    can_place = True
+                    for check_y in range(h - 1, h + 2):
+                        for check_x in range(w - 1, w + 2):
+                            if chunk_tiles[check_y][check_x] and chunk_tiles[check_y][check_x].id in tree_tiles:
+                                can_place = False
+                                break
+
+                    if can_place:
+                        chunk_tiles[h][w] = tree_type.clone()
+
+                # Set spawn point if needed
+                if self.sx == 0 and self.sy == 0 and not tile.solid and not tile.liquid:
+                    self.sx = wx
+                    self.sy = wy
+
+        self.chunks[(cx, cy)] = Chunk(cx, cy, chunk_tiles)
 
 
     def unload_chunks(self, center_x: int, center_y: int) -> None:
@@ -214,15 +200,12 @@ class World:
                 del self.chunks[(cx, cy)]
 
 
-    def get_tile(self, x: int, y: int) -> Tile:
-        """ Get the character at coordinates in the world """
-
+    def get_tile(self, x: int, y: int) -> Tile | None:
+        """ Get the tile at coordinates in the world  """
         coords = (x // CHUNK_SIZE, y // CHUNK_SIZE)
         if chunk := self.chunks.get(coords):
             return chunk.get(x % CHUNK_SIZE, y % CHUNK_SIZE)
-
-        self.load_chunk(*coords)
-        return self.chunks[coords].get(x % CHUNK_SIZE, y % CHUNK_SIZE)
+        return None
 
 
     def set_tile(self, x: int, y: int, tile: int | Tile) -> None:
@@ -396,7 +379,6 @@ class World:
             mob.update(ticks, self)
 
         if ticks % 512 == 0:
-            """ Manage chunk loading/unloading around player """
             # Unload distant chunks
             self.unload_chunks(self.player.cx, self.player.cy)
 
@@ -462,7 +444,6 @@ class World:
 
     def spawn_mobs(self) -> None:
         """ Spawn initial mobs in the world """
-        # TODO: for now this is for testing ...
 
         for _ in range(16):  # Try spawn 16 random mobs
             # Pick random coordinates near spawn

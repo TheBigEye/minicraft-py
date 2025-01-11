@@ -11,7 +11,7 @@ from source.entity.mobs import Mobs
 if TYPE_CHECKING:
     from source.core.player import Player
     from source.level.world import World
-    from source.level.tile.tile import Tile
+    from source.level.tile import Tile
 
 class Tests:
 

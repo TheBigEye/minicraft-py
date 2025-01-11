@@ -36,13 +36,12 @@ class Game:
         [0,  8,  2, 10],
         [12, 4, 14,  6],
         [3, 11,  1,  9],
-        [15, 7, 13,  5]
+        [15, 7, 13,  5],
     ]
 
     # Pre-rendered surfaces
-    overlay: Surface = None
-    darkness: Surface = None
-
+    overlay: Surface = pygame.Surface((200, 200), pygame.SRCALPHA, 32).convert_alpha()
+    darkness: Surface = pygame.Surface(screen.get_size(), pygame.SRCALPHA, 32).convert_alpha()
 
     @staticmethod
     def initialize() -> None:
@@ -60,7 +59,6 @@ class Game:
     @staticmethod
     def _initialize_overlay() -> None:
         """ Initialize the overlay surface with dithering pattern """
-        Game.overlay = pygame.Surface((200, 200), pygame.SRCALPHA, 32).convert_alpha()
         Game.overlay.fill((255, 255, 255, 0))
 
         for y in range(200):
@@ -72,5 +70,4 @@ class Game:
                     Game.overlay.set_at((x, y), (0, 0, 0, alpha))
 
         """ Initialize the darkness surface """
-        Game.darkness = pygame.Surface(Game.screen.get_size(), pygame.SRCALPHA, 32).convert_alpha()
         Game.darkness.fill((0, 0, 0, 255))
