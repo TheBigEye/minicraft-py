@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 class Tile:
 
     # Here we will have a lot of instances of this class, we can save a lot of memory by using __slots__
-    __slots__ = ['id', 'sprite', 'solid', 'liquid', 'parent', 'health', 'sprites', 'connectors']
+    __slots__ = ('id', 'sprite', 'solid', 'liquid', 'parent', 'health', 'sprites', 'connectors')
 
     def __init__(self, id: int, sprites: list[Surface], solid: bool, liquid: bool, parent: int, health: int) -> None:
         self.id = id

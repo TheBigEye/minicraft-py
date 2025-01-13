@@ -37,17 +37,17 @@ class StartMenu:
         self.fading_out = False
         self.fade_alpha = 0
 
-        self.TITLE: pygame.Surface = pygame.transform.scale(
+        self.TITLE: Surface = pygame.transform.scale(
             pygame.image.load('assets/title.png').convert_alpha(), (104 * 4.4, 16 * 4.4)
         )
 
         # Background image scaled by 2x
-        self.BACK: pygame.Surface = pygame.transform.scale(
+        self.BACK: Surface = pygame.transform.scale(
             pygame.image.load('assets/back.png').convert(), (384 * 2.5, 163 * 2.5)
         )
 
         # Initialize surfaces and rectangles
-        self.overlay = pygame.Surface(SCREEN_SIZE_T, pygame.SRCALPHA, 32).convert_alpha()
+        self.overlay = Surface(SCREEN_SIZE_T, pygame.SRCALPHA, 32).convert_alpha()
         self.overlay.fill((0, 0, 0, 255))
 
         # Create static text elements
@@ -156,7 +156,7 @@ class StartMenu:
 
         # Add fade out overlay
         if self.fading_out:
-            fade_overlay = pygame.Surface(SCREEN_SIZE_T, pygame.SRCALPHA, 32).convert_alpha()
+            fade_overlay = Surface(SCREEN_SIZE_T, pygame.SRCALPHA, 32).convert_alpha()
             fade_overlay.fill((0, 0, 0, self.fade_alpha))
             self.sprites.append((fade_overlay, (0, 0)))
 

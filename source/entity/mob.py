@@ -12,11 +12,11 @@ if TYPE_CHECKING:
 
 
 class Mob:
-    __slots__ = [
+    __slots__ = (
         'id', 'sprite', 'sprites', 'health', 'speed',
         'hostile', 'frame', 'timer', 'last_pos',
         'position', 'facing', 'brain', 'cx', 'cy'
-    ]
+    )
 
     def __init__(self, id: int, sprites: list[list[Surface]], health: int, speed: float, hostile: bool = False):
         self.id = id

@@ -134,7 +134,7 @@ class Saveload:
 
             for mob_info in mob_data:
                 # Create new mob instance from saved ID
-                mob = Mobs.from_id(mob_info['id']).clone()
+                mob = Mobs.get(mob_info['id']).clone()
 
                 # Restore mob state
                 mob.position = Vector2(mob_info['x'], mob_info['y'])

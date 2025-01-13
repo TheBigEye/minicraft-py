@@ -18,7 +18,7 @@ class Region:
     SECTOR_SIZE = 4096 # Disks quickly access 4096 byte sectors, so we can load things much faster
     HEADER_SIZE = (REGION_SIZE * REGION_SIZE) * 8  # 16x16 chunks * 8 bytes per entry
 
-    __slots__ = ['chunks_dir', 'filename', 'positions']
+    __slots__ = ('chunks_dir', 'filename', 'positions')
 
     def __init__(self, world_dir, rx, ry): # type: (str, int, int) -> None
         """ Initialize a region file handler

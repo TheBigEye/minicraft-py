@@ -237,6 +237,9 @@ class Player:
                 self.offset.x = (self.position.x - int(self.position.x)) * TILE_SIZE
                 self.offset.y = (self.position.y - int(self.position.y)) * TILE_SIZE
 
+                self.xd = int(tile_x + self.facing.x)
+                self.yd = int(tile_y + self.facing.y)
+
                 # Update chunk position
                 self.cx = tile_x // CHUNK_SIZE
                 self.cy = tile_y // CHUNK_SIZE

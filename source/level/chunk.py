@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 
 class Chunk:
     """ Represents a chunk of tiles in the world """
-    __slots__ = ['tiles', 'modified', 'x', 'y']
+    __slots__ = ('tiles', 'modified', 'x', 'y')
 
     def __init__(self, x: int, y: int, tiles: list) -> None:
         self.x: int = x

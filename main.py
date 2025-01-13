@@ -106,7 +106,6 @@ def main() -> None:
 
             shader.render(Game.buffer)
 
-            Game.screen.blit(Game.buffer, (0, 0))
             display.flip()
 
             if Game.debug:
@@ -115,8 +114,8 @@ def main() -> None:
         # DEBUG ...
         if ((time() * 1000) - timer) > 1000:
             if Game.debug:
-                print(f"> render time: {last_screen:.2f}ms")
-                #print(f"> FPS: {clock.get_fps():.2f}")
+                #print(f"> render time: {last_screen:.2f}ms")
+                print(f"> FPS: {clock.get_fps():.2f}")
 
             timer += 1000
 

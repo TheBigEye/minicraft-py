@@ -15,14 +15,15 @@ class Game:
     # Initialize Pygame modules
     pygame.init()
     pygame.font.init()
-
-    # Display setup
-    screen: Surface = pygame.display.set_mode(SCREEN_SIZE_T, pygame.SRCALPHA, 32)
-    buffer: Surface = pygame.Surface(screen.get_size(), pygame.SRCALPHA, 32).convert_alpha()
+    pygame.display.init()
 
     # Window setup
-    pygame.display.set_caption("Minicraft Potato Edition (VGA Mode 13h)")
+    pygame.display.set_mode(SCREEN_SIZE_T, pygame.SRCALPHA, 32).convert_alpha()
+    pygame.display.set_caption("Minicraft Potato Edition")
     pygame.display.set_icon(pygame.image.load('./assets/icon.png').convert_alpha())
+
+    # Display setup
+    buffer = pygame.display.get_surface()
 
     # Event filtering
     pygame.event.set_allowed([pygame.QUIT, pygame.KEYDOWN, pygame.TEXTINPUT])
@@ -41,12 +42,29 @@ class Game:
 
     # Pre-rendered surfaces
     overlay: Surface = pygame.Surface((200, 200), pygame.SRCALPHA, 32).convert_alpha()
-    darkness: Surface = pygame.Surface(screen.get_size(), pygame.SRCALPHA, 32).convert_alpha()
+    darkness: Surface = pygame.Surface(buffer.get_size(), pygame.SRCALPHA, 32).convert_alpha()
 
     @staticmethod
     def initialize() -> None:
-        """ Initialize game resources and lists """
-        Game._initialize_overlay()
+        """ Initialize game resources """
+        Game.overlay.fill((255, 255, 255, 0))
+
+        for y in range(200):
+            dy = y - 100
+            yy = dy * dy  # (y - 100)^2
+
+            for x in range(200):
+                dx = x - 100
+                xx = dx * dx  # (x - 100)^2
+
+                distance = xx + yy
+                if distance < 10000:  # 100^2
+                    alpha = max(0, 255 - (distance * 0.0255) - (Game.dither[y % 4][x % 4] * 13))
+                    Game.overlay.set_at((x, y), (0, 0, 0, int(alpha)))
+
+
+        """ Initialize the darkness surface """
+        Game.darkness.fill((0, 0, 0, 255))
 
 
     @staticmethod
@@ -54,20 +72,3 @@ class Game:
         """ Quit the game """
         pygame.font.quit()
         pygame.quit()
-
-
-    @staticmethod
-    def _initialize_overlay() -> None:
-        """ Initialize the overlay surface with dithering pattern """
-        Game.overlay.fill((255, 255, 255, 0))
-
-        for y in range(200):
-            for x in range(200):
-                distance = sqrt((x - 100) ** 2 + (y - 100) ** 2)
-                if distance < 100:
-                    dither_value = Game.dither[y % 4][x % 4]
-                    alpha = max(0, 255 - (distance * 2.55) - (dither_value * 10))
-                    Game.overlay.set_at((x, y), (0, 0, 0, alpha))
-
-        """ Initialize the darkness surface """
-        Game.darkness.fill((0, 0, 0, 255))

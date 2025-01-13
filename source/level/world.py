@@ -78,7 +78,7 @@ class World:
         if data:
             # Reconstruct chunk from saved data
             chunk_tiles = [
-                [Tiles.from_id(tile_id).clone() for tile_id in row]
+                [Tiles.get(tile_id).clone() for tile_id in row]
                 for row in data['tiles']
             ]
             self.chunks[(cx, cy)] = Chunk(cx, cy, chunk_tiles)
@@ -200,11 +200,10 @@ class World:
                 del self.chunks[(cx, cy)]
 
 
-    def get_tile(self, x: int, y: int) -> Tile | None:
+    def get_tile(self, x: int, y: int) -> Tile:
         """ Get the tile at coordinates in the world  """
         if chunk := self.chunks.get((x // CHUNK_SIZE, y // CHUNK_SIZE)):
             return chunk.get(x % CHUNK_SIZE, y % CHUNK_SIZE)
-        return None
 
 
     def set_tile(self, x: int, y: int, tile: int | Tile) -> None:
@@ -218,7 +217,7 @@ class World:
 
         # Determine the correct Tile object
         if isinstance(tile, int):
-            tile = Tiles.from_id(tile).clone()
+            tile = Tiles.get(tile).clone()
         else:
             tile = tile.clone()
 
@@ -458,7 +457,7 @@ class World:
 
                 # Create random mob
                 mob_type = choice(mobs)
-                mob = Mobs.from_id(mob_type).clone()
+                mob = Mobs.get(mob_type).clone()
                 mob.position = Vector2(x, y)
 
                 self.mobs.append(mob)
