@@ -15,10 +15,10 @@ class Chunk:
     def __init__(self, x: int, y: int, tiles: list) -> None:
         self.x: int = x
         self.y: int = y
-        self.tiles: list = tiles
+        self.tiles: list[list[Tile]] = tiles
 
         # New chunks are considered modified until saved
-        self.modified = True
+        self.modified: bool = True
 
 
     def get(self, x: int, y: int) -> Tile:

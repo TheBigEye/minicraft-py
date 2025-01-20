@@ -5,7 +5,10 @@ from typing import TYPE_CHECKING
 
 from pygame import Surface
 
-from source.sound import Sound
+from source.particle.smash import SmashParticle
+from source.particle.text import TextParticle
+from source.screen.color import Color
+from source.core.sound import Sound
 from source.utils.constants import TILE_HALF_SIZE, TILE_SIZE
 
 if TYPE_CHECKING:
@@ -52,21 +55,25 @@ class Tile:
 
             Sound.play("genericHurt")
 
-            if (self.health <= 0) and (self.parent > 0):
+            if self.solid:
+                world.add(SmashParticle(x, y))
+                world.add(TextParticle(str(damage), x + 0.40, y + 0.40, Color.RED))
+
+            if (self.health <= 0) and (self.parent > -1):
                 world.set_tile(x, y, self.parent)
 
 
     def render(self, world: World, x: int, y: int) -> None:
 
         # Normal tiles
-        if self.id not in {9, 10, 11}:  # Tree IDs
-            world.tile_buffer.append((self.sprite, (x, y)))
+        if self.id not in {6, 7, 8}:  # Tree IDs
+            world.surfaces.append((self.sprite, (x, y, -24)))
             # Add transitions to the appropriate buffer
             for sprite in self.connectors:
-                world.tile_buffer.append((sprite, (x, y)))
+                world.surfaces.append((sprite, (x, y, -24)))
         else:
-            # Tree rendering
-            world.depth_buffer.append((self.sprite, (((x - TILE_SIZE) + TILE_HALF_SIZE), y - 24)))
+            # Trees use the Z axis for depth rendering :)
+            world.surfaces.append((self.sprite, (((x - TILE_SIZE) + TILE_HALF_SIZE), y - 24, y + 2)))
 
 
     def clone(self) -> Tile:

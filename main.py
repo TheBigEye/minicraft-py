@@ -1,22 +1,19 @@
-from time import time, time_ns
+from pygame import QUIT, display, event, time
 
-import pygame
-from pygame import display, event, QUIT
-
-from source.game import Game
-from source.sound import Sound
-
+from source.core.game import Game
 from source.core.player import Player
+from source.core.sound import Sound
+from source.core.updater import Updater
+
 from source.level.world import World
 
+from source.screen.color import Color
 from source.screen.hotbar import Hotbar
-from source.screen.screen import Color
 from source.screen.shader import Shader
 from source.screen.startmenu import StartMenu
 
-from source.utils.saveload import Saveload
-from source.utils.updater import Updater
 from source.utils.constants import GAME_TICKS
+from source.utils.saveload import Saveload
 
 
 def main() -> None:
@@ -27,53 +24,42 @@ def main() -> None:
     world = World(player)
     updater = Updater(world, player)
 
-    try:
-        Saveload.load(updater, world, player)
-    except FileNotFoundError:
-        world.loaded = False
-
-    clock = pygame.time.Clock()
     title = StartMenu(world, Game.font)
     hotbar = Hotbar(player, Game.font)
     shader = Shader()
 
-    # You might be wondering, why complicate things with a custom main loop when
+
+    # You might be wondering, why complicate things with a complex main loop when
     # Pygame makes it so much simpler and faster? The answer is straightforward
-    # and comes down to three reasons:
+    # and comes down to two reasons:
     #
     # - While a basic Pygame main loop is easy to implement, it tends to consume
     # an excessive and valuable amount of CPU resources. I'm not exaggerating,
     # even when limiting the game to 30 FPS, it's still inefficient
     #
-    # - This approach provides greater control and precision, allowing for finer
-    # adjustments to the game's timing and performance
-    #
-    # - Lastly, I'm accustomed to using the original main loop from Minicraft in
-    # Java, so it's a method I'm familiar and comfortable with
+    # - Lastly, I'm accustomed to using the original main loop design from Minicraft
+    # on Java, so it's a method I'm familiar and comfortable with
 
-    this_time: int = time_ns()
-    last_time: int = this_time
-    nano_time: float = 1000000000.0 / GAME_TICKS
+    clock = time.Clock()
+    timer = time.get_ticks()
+    delta = 0.00
 
-    timer = time() * 1000
-    delta: float = 0.00
+    this_time: int = time.get_ticks()
+    last_time: int = time.get_ticks()
+    frame_time = 1000 // GAME_TICKS
 
     running: bool = True
     drawing: bool = False
 
-    # Only calculate render time if Game.debug is True
-    screen_time: float = 0.00
-    last_screen: float = 0.00
-
     while running:
-        this_time = time_ns()
-        delta += (this_time - last_time) / nano_time
+        this_time = time.get_ticks()
+        delta += this_time - last_time
         last_time = this_time
 
         drawing = False
 
         # GAME LOGIC UPDATE
-        while delta >= 1:
+        while delta >= frame_time:
 
             for _ in event.get(QUIT):
                 running = False
@@ -84,18 +70,16 @@ def main() -> None:
             else:
                 title.update()
 
-            delta -= 1
+            delta -= frame_time
             drawing = True
-
-
-        clock.tick(GAME_TICKS)
 
 
         # SCREEN UPDATE
         if drawing:
             if Game.debug:
-                screen_time = time() * 1000
+                render_start = time.get_ticks()
 
+            # Clear the screen improve the performance
             Game.buffer.fill(Color.BLACK)
 
             if world.loaded:
@@ -109,15 +93,19 @@ def main() -> None:
             display.flip()
 
             if Game.debug:
-                last_screen = (time() * 1000) - screen_time
+                render_time = time.get_ticks() - render_start
+
+
+        clock.tick_busy_loop(GAME_TICKS)
+
 
         # DEBUG ...
-        if ((time() * 1000) - timer) > 1000:
-            if Game.debug:
-                #print(f"> render time: {last_screen:.2f}ms")
-                print(f"> FPS: {clock.get_fps():.2f}")
+        if Game.debug and (time.get_ticks() - timer) >= 1000:
+            if drawing:
+                print(f"> render time: {render_time} ms")
 
-            timer += 1000
+            timer = time.get_ticks()
+
 
     # This prevents corrupted save files in case the game is closed
     if world.loaded:

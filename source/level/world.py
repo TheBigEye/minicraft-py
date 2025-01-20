@@ -5,19 +5,25 @@ from typing import TYPE_CHECKING
 
 from pygame import Surface, Vector2
 
-from source.entity.mobs import Mobs
-from source.game import Game
+from source.core.game import Game
+from source.entity.entities import Entities
 from source.level.chunk import Chunk
 from source.level.perlin import Perlin
 from source.level.tiles import Tiles
 from source.screen.debug import Debug
 from source.screen.tilemap import Tilemap
 from source.utils.region import Region
-from source.utils.constants import *
+
+from source.utils.constants import (
+    TILE_SIZE, TILE_MULT_SIZE, TILE_HALF_SIZE,
+    SCREEN_FULL_H, SCREEN_FULL_W, SCREEN_HALF_H,
+    SCREEN_HALF_W, RENDER_RANGE_H, RENDER_RANGE_V,
+    CHUNK_SIZE
+)
 
 if TYPE_CHECKING:
     from source.core.player import Player
-    from source.entity.mob import Mob
+    from source.entity.entity import Entity
     from source.level.tile import Tile
 
 
@@ -28,7 +34,7 @@ class World:
 
         # Storage for terrain and chunks
         self.chunks: dict = {}
-        self.mobs: list[Mob] = []
+        self.entities: list[Entity] = []
 
         self.ticks: int = 0
 
@@ -39,8 +45,7 @@ class World:
         self.player: Player = player
         self.loaded: bool = False
 
-        self.tile_buffer = []
-        self.depth_buffer = []
+        self.surfaces = []
 
 
     def initialize(self, worldseed) -> None:
@@ -60,7 +65,7 @@ class World:
         self.player.initialize(self, self.sx, self.sy)
 
         # Spawn initial mobs
-        self.spawn_mobs()
+        self.populate()
 
         self.loaded = True
 
@@ -110,9 +115,9 @@ class World:
                 # Water bodies
                 if elevation < 0.32:
                     if elevation < 0.28:
-                        tile = Tiles.ocean.clone()
+                        tile = Tiles.water.clone()
                     else:
-                        tile = Tiles.iceberg.clone() if temp < 0.25 else Tiles.ocean.clone()
+                        tile = Tiles.iceberg.clone() if temp < 0.25 else Tiles.water.clone()
 
                 # Shallow water
                 elif elevation < 0.42:
@@ -147,7 +152,7 @@ class World:
 
                 # Mountains
                 else:
-                    tile = Tiles.stone.clone() if elevation < 1.95 else Tiles.gravel.clone()
+                    tile = Tiles.stone.clone() if elevation < 1.95 else Tiles.dirt.clone()
 
                 # Add base terrain tile
                 chunk_tiles[h][w] = tile
@@ -204,6 +209,7 @@ class World:
         """ Get the tile at coordinates in the world  """
         if chunk := self.chunks.get((x // CHUNK_SIZE, y // CHUNK_SIZE)):
             return chunk.get(x % CHUNK_SIZE, y % CHUNK_SIZE)
+        return None
 
 
     def set_tile(self, x: int, y: int, tile: int | Tile) -> None:
@@ -229,6 +235,12 @@ class World:
         )
 
 
+    def add(self, entity: Entity) -> None:
+        """ Add an entity to the World """
+        entity.initialize(self)
+        self.entities.append(entity)
+
+
     def daylight(self) -> int:
         if self.ticks < 3000:
             return 16 + (self.ticks * 239 // 3000)
@@ -241,9 +253,19 @@ class World:
 
 
     def render(self, screen: Surface) -> None:
-        # Clear buffers at start
-        self.tile_buffer.clear()
-        self.depth_buffer.clear()
+        # Clear draw buffer at start
+        self.surfaces.clear()
+
+        # NOTE: All world elements are 2D, positioned using the X and Y axes.
+        # They also have a Z axis representing sprite depth, which influences
+        # the drawing order.
+        # This allows objects to be rendered behind or in front of others.
+        # We use a list to store each object's sprite along with a tuple with
+        # those values:
+        #     [(surface, (x, y, z))]
+        #
+        # Tiles and entities generally have a Z value of -24. Trees are an
+        # exception, typically having a Z value minor to -8.
 
         # Pre-calculate camera position
         camera_x = int(SCREEN_HALF_W - (self.player.position.x * TILE_SIZE))
@@ -255,10 +277,9 @@ class World:
             range(self.player.cy - RENDER_RANGE_V - 1, self.player.cy + RENDER_RANGE_V + 2)
         )
 
-        # Screen boundaries for culling
+        # Screen boundaries for tiles culling
         screen_bounds = (
-            -TILE_MULT_SIZE, -TILE_MULT_SIZE,
-            SCREEN_FULL_W + TILE_HALF_SIZE, SCREEN_FULL_H - TILE_HALF_SIZE
+            -TILE_MULT_SIZE, -TILE_MULT_SIZE, SCREEN_FULL_W + TILE_HALF_SIZE, SCREEN_FULL_H - TILE_HALF_SIZE
         )
 
         # Render visible chunks
@@ -291,7 +312,7 @@ class World:
                         if not screen_bounds[0] <= wx <= screen_bounds[2]:
                             continue
 
-                        if not tile.solid:
+                        if not tile.solid or tile.id == Tiles.stone.id:
                             world_x = chunk_x * CHUNK_SIZE + xt
                             world_y = chunk_y * CHUNK_SIZE + yt
                             tile.connectors = Tilemap.connector(self, tile, world_x, world_y)
@@ -299,37 +320,23 @@ class World:
                         tile.render(self, wx, wy)
 
 
-        # Add mobs to depth buffer
-        for mob in self.mobs:
-            # Calculate mob screen position based on player camera
-            x = int(SCREEN_HALF_W - ((self.player.position.x - mob.position.x) * TILE_SIZE))
-            y = int(SCREEN_HALF_H - ((self.player.position.y - mob.position.y) * TILE_SIZE))
+        # Add mobs to draw
+        for entity in self.entities:
+            entity.render(screen)
 
-            # Only render if on screen
-            if (-TILE_SIZE <= x <= SCREEN_FULL_W and
-                -TILE_SIZE <= y <= SCREEN_FULL_H):
-                self.depth_buffer.extend([(mob.sprite, (x - 15, y - 24, y - 24))])
-
-
-        # Sort and render the buffers
-        self.depth_buffer.extend(self.player.render(screen))
+        # And the player ...
+        self.surfaces.extend(self.player.render(screen))
 
         # Sort and render sprite buffers!
-        for buffer in [self.tile_buffer, self.depth_buffer]:
-            buffer.sort(key=lambda x: x[1][2] if len(x[1]) > 2 else x[1][1])
-            screen.fblits([(sprite, (pos[0], pos[1])) for sprite, pos in buffer])
+        self.surfaces.sort(key=lambda x: x[1][2])
 
+        # Render all elements in the sorted buffer
+        screen.fblits([(sprite, (pos[0], pos[1])) for sprite, pos in self.surfaces])
 
         screen.blit(Game.darkness)
 
-
         if Game.debug:
-            Debug.render(
-                screen,
-                self.chunks,
-                self.player.position.x, self.player.position.y,
-                self.player.cx, self.player.cy
-            )
+            Debug.grid(screen, self.chunks, self.player)
 
 
     def update(self, ticks) -> None:
@@ -352,10 +359,7 @@ class World:
                             (cx, cy),
                             Tiles.dirt,
                             Tiles.grass,
-                            [
-                                Tiles.grass,
-                                Tiles.tallgrass
-                            ]
+                            [Tiles.grass, Tiles.flower]
                         )
 
                 # Check if it's time to spread water
@@ -366,15 +370,12 @@ class World:
                         Tiles.water,      # The tile to replace with
 
                         # Tiles that can influence the replacement
-                        [
-                            Tiles.ocean,
-                            Tiles.water
-                        ]
+                        [Tiles.water, Tiles.ice]
                     )
 
         # Update mobs
-        for mob in self.mobs:
-            mob.update(ticks, self)
+        for entity in self.entities:
+            entity.update()
 
         if ticks % 512 == 0:
             # Unload distant chunks
@@ -440,11 +441,8 @@ class World:
 
         return False
 
-    def spawn_mobs(self) -> None:
+    def populate(self) -> None:
         """ Spawn initial mobs in the world """
-        mobs = (
-            Mobs.sheep.id, Mobs.pig.id, Mobs.vamp.id
-        )
 
         for _ in range(6):  # Try spawn 6 random mobs
             # Pick random coordinates near spawn
@@ -455,9 +453,7 @@ class World:
             tile: Tile = self.get_tile(int(x), int(y))
             if tile and not tile.solid and not tile.liquid:
 
-                # Create random mob
-                mob_type = choice(mobs)
-                mob = Mobs.get(mob_type).clone()
+                mob = choice(Entities.pool)()
                 mob.position = Vector2(x, y)
 
-                self.mobs.append(mob)
+                self.add(mob)

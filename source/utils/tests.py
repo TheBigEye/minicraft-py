@@ -6,7 +6,8 @@ from random import choice, randint
 
 from pygame import Vector2
 
-from source.entity.mobs import Mobs
+from source.entity.entities import Entities
+
 
 if TYPE_CHECKING:
     from source.core.player import Player
@@ -25,9 +26,7 @@ class Tests:
         tile: Tile = world.get_tile(int(x), int(y))
         if not tile.solid and not tile.liquid:
 
-            # Create random mob ...
-            mob_type = choice((Mobs.sheep.id, Mobs.pig.id, Mobs.vamp.id))
-            mob = Mobs.get(mob_type).clone()
+            mob = choice(Entities.pool)()
             mob.position = Vector2(x, y)
 
-            world.mobs.append(mob)
+            world.add(mob)

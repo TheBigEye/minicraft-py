@@ -9,14 +9,14 @@ from typing import TYPE_CHECKING
 
 from pygame import Vector2
 
-from source.entity.mobs import Mobs
-from source.sound import Sound
+from source.core.sound import Sound
+from source.entity.entities import Entities
 from source.utils.region import Region
 
 if TYPE_CHECKING:
     from source.core.player import Player
+    from source.core.updater import Updater
     from source.level.world import World
-    from source.utils.updater import Updater
 
 
 class Saveload:
@@ -50,19 +50,13 @@ class Saveload:
                 'energy': player.energy
             },
 
-            'mobs': [{
-                'id': mob.id,
-                'x': mob.position.x,
-                'y': mob.position.y,
-                'fx': mob.facing.x,
-                'fy': mob.facing.y,
-                'cx': mob.cx,
-                'cy': mob.cy,
-                'health': mob.health,
-                'hostile': mob.hostile,
-                'frame': mob.frame,
-                'timer': mob.timer
-            } for mob in world.mobs]
+            'entities': [{
+                'eid': entity.eid,
+                'x': entity.position.x,
+                'y': entity.position.y,
+                'fx': entity.facing.x,
+                'fy': entity.facing.y
+            } for entity in world.entities]
         }
 
         # Save world metadata and mobs to a single pickle file
@@ -129,28 +123,29 @@ class Saveload:
             player.energy = player_data['energy']
 
             # Load mob data
-            mob_data = data.get('mobs', [])
-            world.mobs.clear()  # Clear existing mobs before loading
+            entities = data.get('entities', [])
+            world.entities.clear()  # Clear existing mobs before loading
 
-            for mob_info in mob_data:
-                # Create new mob instance from saved ID
-                mob = Mobs.get(mob_info['id']).clone()
+            for entity_data in entities:
+
+                eid = entity_data['eid']
+
+                # For avoid load particles
+                if (eid < 0):
+                    continue
+
+                # Create new entity instance from saved EID
+                entity = Entities.get(eid)
 
                 # Restore mob state
-                mob.position = Vector2(mob_info['x'], mob_info['y'])
-                mob.facing = Vector2(mob_info['fx'], mob_info['fy'])
-                mob.cx = mob_info['cx']
-                mob.cy = mob_info['cy']
-                mob.health = mob_info['health']
-                mob.hostile = mob_info['hostile']
-                mob.frame = mob_info['frame']
-                mob.timer = mob_info['timer']
+                entity.position = Vector2(entity_data['x'], entity_data['y'])
+                entity.facing = Vector2(entity_data['fx'], entity_data['fy'])
 
-                world.mobs.append(mob)
+                world.add(entity)
 
             # Handle older save files if mob data is missing
-            if not mob_data:
-                world.spawn_mobs()
+            if not entities:
+                world.populate()
 
         Sound.play("eventSound")
         player.initialize(world, player.position.x, player.position.y)

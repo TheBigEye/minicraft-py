@@ -4,7 +4,7 @@ class Sound:
     sounds: dict[str, mixer.Sound] = {}
 
     @staticmethod
-    def initialize():
+    def initialize() -> None:
         mixer.init(44100, 16, 4, 4096)
 
         # List of sounds to load
@@ -23,12 +23,12 @@ class Sound:
 
 
     @staticmethod
-    def quit():
+    def quit() -> None:
         mixer.quit()
 
 
     @staticmethod
-    def play(sound_name: str):
+    def play(sound_name: str) -> None:
         if sound_name in Sound.sounds:
             Sound.sounds[sound_name].play()
         else:
@@ -36,7 +36,7 @@ class Sound:
 
 
     @staticmethod
-    def stop(sound_name: str):
+    def stop(sound_name: str) -> None:
         if sound_name in Sound.sounds:
             Sound.sounds[sound_name].stop()
         else:

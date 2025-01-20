@@ -16,7 +16,7 @@ class Sprites:
 
 
     # Basic sprites
-    NULL_TILE = [get(0, 31, 16, TILE_SIZE)]
+    NULL = [get(0, 31, 16, TILE_SIZE)]
     HIGHLIGHT = get(1, 31, 16, TILE_SIZE)
 
     # UI elements
@@ -35,6 +35,8 @@ class Sprites:
     GUI_RIGHT_BORDER = pygame.transform.flip(GUI_LEFT_BORDER, True, False)
     GUI_BOTTOM_RIGHT_CORNER = pygame.transform.flip(GUI_TOP_LEFT_CORNER, True, True)
     GUI_BOTTOM_BORDER = pygame.transform.flip(GUI_TOP_BORDER, False, True)
+
+    SMASH_PARTICLE = get(6, 31, 16, TILE_SIZE)
 
 
     WATER_SWIM = [
@@ -148,6 +150,20 @@ class Sprites:
         get(16, 3, 16, TILE_SIZE), # Base water 3
     ]
 
+    STONE = [
+        get(19, 1, 16, TILE_SIZE), # Base water
+
+        get(19, 0, 16, TILE_SIZE), # Top transition
+        get(20, 1, 16, TILE_SIZE), # Left transition
+        get(18, 1, 16, TILE_SIZE),  # Right transition
+        get(19, 2, 16, TILE_SIZE), # Bottom transition
+
+        get(18, 0, 16, TILE_SIZE),  # Top-left corner
+        get(20, 0, 16, TILE_SIZE), # Top-right corner
+        get(18, 2, 16, TILE_SIZE),  # Bottom-left corner
+        get(20, 2, 16, TILE_SIZE), # Bottom-right corner
+    ]
+
     DIRT = [
         get(3, 3, 16, TILE_SIZE),
         get(4, 3, 16, TILE_SIZE)
@@ -179,12 +195,21 @@ class Sprites:
         [get(0, 15, 16, TILE_SIZE), get(1, 15, 16, TILE_SIZE)],
     ]
 
+
     VAMP = [
         [get(3, 16, 16, TILE_SIZE), get(4, 16, 16, TILE_SIZE)],
         [get(3, 18, 16, TILE_SIZE), get(4, 18, 16, TILE_SIZE)],
         [get(3, 17, 16, TILE_SIZE), get(4, 17, 16, TILE_SIZE)],
         [get(3, 15, 16, TILE_SIZE), get(4, 15, 16, TILE_SIZE)],
     ]
+
+    ZOMBIE = [
+        [get(3, 21, 16, TILE_SIZE), get(4, 21, 16, TILE_SIZE)],
+        [get(3, 23, 16, TILE_SIZE), get(4, 23, 16, TILE_SIZE)],
+        [get(3, 22, 16, TILE_SIZE), get(4, 22, 16, TILE_SIZE)],
+        [get(3, 20, 16, TILE_SIZE), get(4, 20, 16, TILE_SIZE)],
+    ]
+
 
     PIG = [
         [get(6, 16, 16, TILE_SIZE), get(7, 16, 16, TILE_SIZE)],
@@ -198,4 +223,19 @@ class Sprites:
         [get(9, 18, 16, TILE_SIZE), get(10, 18, 16, TILE_SIZE)],
         [get(9, 17, 16, TILE_SIZE), get(10, 17, 16, TILE_SIZE)],
         [get(9, 15, 16, TILE_SIZE), get(10, 15, 16, TILE_SIZE)],
+    ]
+
+
+    GHOST_PIG = [
+        [get(6, 21, 16, TILE_SIZE), get(7, 21, 16, TILE_SIZE)],
+        [get(6, 23, 16, TILE_SIZE), get(7, 23, 16, TILE_SIZE)],
+        [get(6, 22, 16, TILE_SIZE), get(7, 22, 16, TILE_SIZE)],
+        [get(6, 20, 16, TILE_SIZE), get(7, 20, 16, TILE_SIZE)],
+    ]
+
+    GHOST_SHEEP = [
+        [get(9, 21, 16, TILE_SIZE), get(10, 21, 16, TILE_SIZE)],
+        [get(9, 23, 16, TILE_SIZE), get(10, 23, 16, TILE_SIZE)],
+        [get(9, 22, 16, TILE_SIZE), get(10, 22, 16, TILE_SIZE)],
+        [get(9, 20, 16, TILE_SIZE), get(10, 20, 16, TILE_SIZE)],
     ]

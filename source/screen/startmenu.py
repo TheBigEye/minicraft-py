@@ -6,8 +6,9 @@ from typing import TYPE_CHECKING
 import pygame
 from pygame import Font, Surface
 
-from source.screen.screen import Color, Screen
-from source.sound import Sound
+from source.core.sound import Sound
+from source.screen.color import Color
+from source.screen.screen import Screen
 
 from source.utils.constants import (
     SCREEN_FULL_H, SCREEN_FULL_W,
@@ -63,17 +64,17 @@ class StartMenu:
         self.texts.append((edition_text, edition_rect))
 
         # Seed text
-        seed_text = self.font.render(" Enter World Seed ", False, Color.GREY, (22, 22, 137)).convert()
+        seed_text = self.font.render(" Enter World Seed ", False, Color.WHITE, (22, 22, 137)).convert()
         seed_rect = seed_text.get_rect(center=(SCREEN_HALF_W, SCREEN_HALF_H + 24))
         self.texts.append((seed_text, seed_rect))
 
         # Author text
-        author_text = self.font.render("Game by TheBigEye", False, Color.GREY, Color.BLACK).convert()
+        author_text = self.font.render("Game by TheBigEye", False, Color.GRAY, Color.BLACK).convert()
         author_rect = author_text.get_rect(bottomleft=(4, SCREEN_FULL_H))
         self.texts.append((author_text, author_rect))
 
         # Version text
-        version_text = self.font.render("Infdev 0.31", False, Color.GREY, Color.BLACK).convert()
+        version_text = self.font.render("Infdev 0.31", False, Color.GRAY, Color.BLACK).convert()
         version_rect = version_text.get_rect(bottomright=(SCREEN_FULL_W - 4, SCREEN_FULL_H))
         self.texts.append((version_text, version_rect))
 
@@ -137,28 +138,29 @@ class StartMenu:
     def render(self, screen: Surface) -> None:
         self.sprites.clear()
 
-        self.sprites.append((self.BACK, self.BACK.get_rect(center = (SCREEN_HALF_W, 260))))
-        self.sprites.append((self.TITLE, self.TITLE.get_rect(center = (SCREEN_HALF_W, 160))))
+        if self.fade_alpha < 250:
+            self.sprites.append((self.BACK, self.BACK.get_rect(center = (SCREEN_HALF_W, 260))))
+            self.sprites.append((self.TITLE, self.TITLE.get_rect(center = (SCREEN_HALF_W, 160))))
 
-        self.sprites.extend(Screen.draw_box(21, 18, 18, 3))
-        self.sprites.extend(self.texts)
+            self.sprites.extend(Screen.draw_box(21, 18, 18, 3))
+            self.sprites.extend(self.texts)
 
-        # Render input text
-        input_text = self.font.render(
-            self.seed_input + ("█" if self.cursor_visible else " "),
-            False, Color.WHITE, (22, 22, 137)
-        ).convert()
-        self.sprites.append((input_text, input_text.get_rect(center=self.seed_input_rect.center)))
+            # Render input text
+            input_text = self.font.render(
+                self.seed_input + ("█" if self.cursor_visible else " "),
+                False, Color.WHITE, (22, 22, 137)
+            ).convert()
+            self.sprites.append((input_text, input_text.get_rect(center=self.seed_input_rect.center)))
 
-        # Add overlay if still fading
-        if self.overlay:
-            self.sprites.append((self.overlay, (0, 0)))
+            # Add overlay if still fading
+            if self.overlay:
+                self.sprites.append((self.overlay, (0, 0)))
 
-        # Add fade out overlay
-        if self.fading_out:
-            fade_overlay = Surface(SCREEN_SIZE_T, pygame.SRCALPHA, 32).convert_alpha()
-            fade_overlay.fill((0, 0, 0, self.fade_alpha))
-            self.sprites.append((fade_overlay, (0, 0)))
+            # Add fade out overlay
+            if self.fading_out:
+                fade_overlay = Surface(SCREEN_SIZE_T, pygame.SRCALPHA, 32).convert_alpha()
+                fade_overlay.fill((0, 0, 0, self.fade_alpha))
+                self.sprites.append((fade_overlay, (0, 0)))
 
         # Render all sprites
         screen.fblits(self.sprites)

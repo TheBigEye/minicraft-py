@@ -5,9 +5,9 @@ from typing import TYPE_CHECKING
 import pygame
 from pygame import Vector2
 
-from source.game import Game
+from source.core.game import Game
+from source.core.sound import Sound
 from source.screen.sprites import Sprites
-from source.sound import Sound
 from source.utils.saveload import Saveload
 from source.utils.tests import Tests
 
@@ -34,6 +34,11 @@ class Updater:
         self.ATTACK_TIME: float = 0.05
         self.held_attack: bool = False
 
+        try:
+            Saveload.load(self, self.world, self.player)
+        except FileNotFoundError:
+            world.loaded = False
+
 
     def _cooldown(self, last: float, time: float) -> bool:
         now = pygame.time.get_ticks() / 1000  # Convert to seconds
@@ -53,27 +58,29 @@ class Updater:
 
         if event[pygame.K_UP] or event[pygame.K_w]:
             movement.y -= 1
-            self.player.sprite = Sprites.PLAYER[0][self.timer]
-        elif event[pygame.K_DOWN] or event[pygame.K_s]:
+        if event[pygame.K_DOWN] or event[pygame.K_s]:
             movement.y += 1
-            self.player.sprite = Sprites.PLAYER[1][self.timer]
 
         if event[pygame.K_LEFT] or event[pygame.K_a]:
             movement.x -= 1
-            self.player.sprite = Sprites.PLAYER[2][self.timer]
-        elif event[pygame.K_RIGHT] or event[pygame.K_d]:
+        if event[pygame.K_RIGHT] or event[pygame.K_d]:
             movement.x += 1
-            self.player.sprite = Sprites.PLAYER[3][self.timer]
 
 
         # Normalize diagonal movement
         if movement.length() > 0:
-            if movement.x != 0 and movement.y != 0:
-                movement = movement.normalize()
+            movement = movement.normalize()
 
-            # Apply swimming slowdown if necessary
-            if self.player.swimming():
-                movement *= 0.50
+            if abs(movement.y) > abs(movement.x):
+                if movement.y < 0:
+                    self.player.sprite = Sprites.PLAYER[0][self.timer]  # Up
+                else:
+                    self.player.sprite = Sprites.PLAYER[1][self.timer]  # Down
+            else:
+                if movement.x < 0:
+                    self.player.sprite = Sprites.PLAYER[2][self.timer]  # Left
+                else:
+                    self.player.sprite = Sprites.PLAYER[3][self.timer]  # Right
 
             # Apply movement vector
             self.player.move(

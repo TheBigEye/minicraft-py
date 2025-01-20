@@ -1,14 +1,16 @@
 from __future__ import annotations
 
+from math import hypot
 from random import randint
 from typing import TYPE_CHECKING
 
 import pygame
 from pygame import Surface, Vector2
 
-from source.game import Game
+from source.core.game import Game
 from source.level.tiles import Tiles
-from source.sound import Sound
+from source.particle.text import TextParticle
+from source.core.sound import Sound
 from source.screen.sprites import Sprites
 
 from source.utils.constants import (
@@ -52,9 +54,12 @@ class Player:
         self.world: World = None
 
         self.sprite = Sprites.PLAYER[1][0]
-        self.speed = 0.08
+        self.speed: float = 0.08
 
-        self.KNOCKBACK: float = 0.40
+        self.hurt_time: int = 0
+        self.swim_time: int = 0
+
+        self.KNOCKBACK: float = 0.35
 
 
     def initialize(self, world: World, sx: float, sy: float) -> None:
@@ -80,57 +85,63 @@ class Player:
 
 
     def move(self, mx: float, my: float) -> None:
-        # Convert target movement to bit-shifted system
-        target_x = int(mx * TILE_BITS)
-        target_y = int(my * TILE_BITS)
-        current_x = int(self.position.x * TILE_BITS)
-        current_y = int(self.position.y * TILE_BITS)
-
-        # Calculate movement vector in bit-shifted coordinates
-        dx = target_x - current_x
-        dy = target_y - current_y
+        # Calculate deltas in regular coordinates first
+        dx = mx - self.position.x
+        dy = my - self.position.y
 
         if dx != 0 or dy != 0:
-            # Normalize and apply speed
-            length = (dx * dx + dy * dy) ** 0.5
+
+            # Normalize the movement vector and apply speed uniformly
+            length = hypot(dx, dy)
             if length > 0:
-                # Calculate movement, preserving diagonal movement
-                move_x = int((dx / length) * self.speed * TILE_BITS)
-                move_y = int((dy / length) * self.speed * TILE_BITS)
+                dx = (dx / length) * self.speed
+                dy = (dy / length) * self.speed
 
-                # New position in bit-shifted coordinates
-                new_x = current_x + move_x
-                new_y = current_y + move_y
+            # Convert movement to bit-shifted format
+            new_x = int((self.position.x + dx) * TILE_BITS)
+            new_y = int((self.position.y + dy) * TILE_BITS)
 
-                # Convert to tile coordinates
-                tile_x = new_x >> POSITION_SHIFT
-                tile_y = new_y >> POSITION_SHIFT
+            # Convert to tile coordinates for collision
+            tile_x = new_x >> POSITION_SHIFT
+            tile_y = new_y >> POSITION_SHIFT
 
-                # Check collision
-                tile = self.world.get_tile(tile_x, tile_y)
+            # Check collision
+            tile: Tile = self.world.get_tile(tile_x, tile_y)
 
-                if tile.id == Tiles.cactus.id:
-                    self.hurt(randint(1, 2))
+            if not tile:
+                return
 
-                if not tile.solid:
-                    # Update position in bit-shifted coordinates
-                    self.position.x = new_x / TILE_BITS
-                    self.position.y = new_y / TILE_BITS
+            if tile.id == Tiles.cactus.id:
+                self.hurt(1)
 
-                    # Calculate offset for rendering
-                    self.offset.x = (self.position.x - int(self.position.x)) * TILE_SIZE
-                    self.offset.y = (self.position.y - int(self.position.y)) * TILE_SIZE
+            if tile.solid:
+                return
 
-                    # Update facing direction
-                    if move_x != 0 or move_y != 0:
-                        self.facing = Vector2(move_x, move_y).normalize()
+            if self.swimming():
+                self.swim_time += 1
+                if (self.swim_time % 2 == 0):
+                    return
 
-                    self.xd = int(tile_x + self.facing.x)
-                    self.yd = int(tile_y + self.facing.y)
+            if (self.hurt_time > 0):
+                return
 
-                    # Update chunk position
-                    self.cx = tile_x // CHUNK_SIZE
-                    self.cy = tile_y // CHUNK_SIZE
+            # Store the fractional part to prevent error accumulation (Yeah, sucks)
+            self.position.x += dx
+            self.position.y += dy
+
+            # Calculate offset for rendering
+            self.offset.x = (self.position.x - int(self.position.x)) * TILE_SIZE
+            self.offset.y = (self.position.y - int(self.position.y)) * TILE_SIZE
+
+            # Update facing direction
+            self.facing = Vector2(dx, dy).normalize()
+
+            self.xd = int(tile_x + self.facing.x)
+            self.yd = int(tile_y + self.facing.y)
+
+            # Update chunk position
+            self.cx = tile_x // CHUNK_SIZE
+            self.cy = tile_y // CHUNK_SIZE
 
 
     def attack(self): # type: () -> None
@@ -162,26 +173,25 @@ class Player:
             highlight.x -= self.offset.x
             highlight.y -= self.offset.y
 
-            sprites.append((Sprites.HIGHLIGHT, (highlight.x, highlight.y)))
+            sprites.append((Sprites.HIGHLIGHT, (highlight.x, highlight.y, highlight.y + 8)))
 
-            Game.darkness.blit(
-                Game.overlay,
-                ((SCREEN_HALF_W - 96), (SCREEN_HALF_H - 92) - 16),
-                special_flags=pygame.BLEND_RGBA_SUB
-            )
+        Game.darkness.blit(
+            Game.overlay,
+            ((SCREEN_HALF_W - 96), (SCREEN_HALF_H - 92) - 16),
+            special_flags=pygame.BLEND_RGBA_SUB
+        )
 
-            Game.darkness.set_alpha(255 - self.world.daylight())
 
         rx = SCREEN_HALF_W - 15
-        ry = SCREEN_HALF_H - 24
+        ry = SCREEN_HALF_H - 15
 
         # Player rendering
         if self.swimming():
             half_sprite = self.sprite.subsurface((0, 0, self.sprite.get_width(), self.sprite.get_height() // 2))
-            sprites.append((Sprites.WATER_SWIM[0 if self.cursor else 1], (rx, ry + 2)))
-            sprites.append((half_sprite, (rx, ry + 4)))
+            sprites.append((Sprites.WATER_SWIM[0 if self.cursor else 1], (rx, ry + 2, ry + 2)))
+            sprites.append((half_sprite, (rx, ry + 4, ry + 4)))
         else:
-            sprites.append((self.sprite, (rx, ry)))
+            sprites.append((self.sprite, (rx, ry, ry)))
 
         return sprites
 
@@ -192,7 +202,8 @@ class Player:
             if (self.energy > 0) and self.swimming():
                 self.energy = max(0, self.energy - 1)
 
-            # Increase health if stamina is higher than half
+        # Increase health if stamina is higher than half
+        if ticks % 30 == 0:
             if self.energy > (self.MAX_STAT // 2):
                 self.health = min(self.MAX_STAT, self.health + 1)
 
@@ -201,14 +212,27 @@ class Player:
                 self.hurt(1)
 
         if (ticks % 4 == 0):
-            self.cursor = not self.cursor
+
+            tile: Tile = self.world.get_tile(self.xd, self.yd)
+            if tile and tile.solid:
+                self.cursor = False
+            else:
+                self.cursor = not self.cursor
+
+            Game.darkness.set_alpha(255 - self.world.daylight())
 
             if not self.swimming() and (self.energy < self.MAX_STAT):
                 self.energy = min(self.MAX_STAT, self.energy + 1)
 
+        if (self.hurt_time > 0):
+            self.hurt_time -= 1
+
 
     def knockback(self): # type: () -> None
         """ Apply immediate knockback effect when damaged """
+
+        # TODO: Update this ...
+
         if self.facing.length() > 0:
             # Convert current position to bit-shifted coordinates
             current_x = int(self.position.x * TILE_BITS)
@@ -246,6 +270,13 @@ class Player:
 
 
     def hurt(self, damage: int):
-        self.health = max(0, self.health - damage)
-        self.knockback()
+        if (self.hurt_time > 0):
+            return
+
         Sound.play("playerHurt")
+        self.world.add(TextParticle(str(damage), self.position.x, self.position.y, (168, 54, 146)))
+        self.health = max(0, self.health - damage)
+
+        self.hurt_time = 8
+
+        self.knockback()
