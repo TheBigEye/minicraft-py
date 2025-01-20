@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import heapq
 from enum import Enum
-from random import choice, randint, uniform
+from random import uniform
 from math import hypot, pi, cos, sin
 from typing import TYPE_CHECKING
 
 from pygame import Vector2
+from source.utils.slots import auto_slots
 
 if TYPE_CHECKING:
     from source.entity.mob import Mob
@@ -21,6 +22,7 @@ class State(Enum):
     CHASING = 3
 
 
+@auto_slots
 class Brain:
     def __init__(self, mob: Mob):
         self.mob: Mob = mob # Reference to the mob
@@ -138,6 +140,7 @@ class Brain:
         return path
 
 
+@auto_slots
 class PassiveBrain(Brain):
     def __init__(self, mob: Mob):
         super().__init__(mob)
@@ -204,6 +207,7 @@ class PassiveBrain(Brain):
         self.state = State.IDLE
 
 
+@auto_slots
 class HostileBrain(Brain):
     def __init__(self, mob: Mob):
         super().__init__(mob)
@@ -273,6 +277,7 @@ class HostileBrain(Brain):
             self.passive_brain.update(world)
 
 
+@auto_slots
 class NeutralBrain(Brain):
     def __init__(self, mob: Mob):
         super().__init__(mob)

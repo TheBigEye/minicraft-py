@@ -3,10 +3,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from pygame import Surface, Vector2
+from source.utils.slots import auto_slots
 
 if TYPE_CHECKING:
     from source.level.world import World
 
+@auto_slots
 class Entity:
 
     def __init__(self):

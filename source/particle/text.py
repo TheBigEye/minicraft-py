@@ -6,8 +6,9 @@ from pygame import Surface, Vector2
 from source.core.game import Game
 from source.particle.particle import Particle
 from source.screen.color import Color
+from source.utils.slots import auto_slots
 
-
+@auto_slots
 class TextParticle(Particle):
 
     def __init__(self, message: str, x: float, y: float, color: tuple):

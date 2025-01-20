@@ -10,6 +10,7 @@ from source.entity.brain import Brain, State
 from source.entity.entity import Entity
 from source.particle.text import TextParticle
 from source.screen.color import Color
+from source.utils.slots import auto_slots
 
 from source.utils.constants import (
     CHUNK_SIZE, POSITION_SHIFT, SCREEN_FULL_H, SCREEN_FULL_W,
@@ -20,7 +21,7 @@ if TYPE_CHECKING:
     from source.level.tile import Tile
     from source.level.world import World
 
-
+@auto_slots
 class Mob(Entity):
 
     def __init__(self):

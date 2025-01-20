@@ -10,15 +10,14 @@ from source.particle.text import TextParticle
 from source.screen.color import Color
 from source.core.sound import Sound
 from source.utils.constants import TILE_HALF_SIZE, TILE_SIZE
+from source.utils.slots import auto_slots
 
 if TYPE_CHECKING:
     from source.level.world import World
 
 
+@auto_slots
 class Tile:
-
-    # Here we will have a lot of instances of this class, we can save a lot of memory by using __slots__
-    __slots__ = ('id', 'sprite', 'solid', 'liquid', 'parent', 'health', 'sprites', 'connectors')
 
     def __init__(self, id: int, sprites: list[Surface], solid: bool, liquid: bool, parent: int, health: int) -> None:
         self.id = id

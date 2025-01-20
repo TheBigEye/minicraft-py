@@ -7,10 +7,12 @@ from pygame import Surface, Vector2
 from source.entity.brain import HostileBrain
 from source.entity.mob import Mob
 from source.screen.sprites import Sprites
+from source.utils.slots import auto_slots
 
 if TYPE_CHECKING:
     from source.entity.brain import Brain
 
+@auto_slots
 class Vampire(Mob):
     def __init__(self) -> None:
         super().__init__()
