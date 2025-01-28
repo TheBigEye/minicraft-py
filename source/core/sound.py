@@ -1,10 +1,11 @@
 from pygame import mixer
 
 class Sound:
-    sounds: dict[str, mixer.Sound] = {}
 
-    @staticmethod
-    def initialize() -> None:
+    def __init__(self):
+        self.sounds: dict[str, mixer.Sound] = {}
+
+    def initialize(self) -> None:
         mixer.init(44100, 16, 4, 4096)
 
         # List of sounds to load
@@ -19,25 +20,21 @@ class Sound:
 
         # Load all sounds into the dictionary
         for key, file_path in sound_files.items():
-            Sound.sounds[key] = mixer.Sound(file_path)
+            self.sounds[key] = mixer.Sound(file_path)
 
 
-    @staticmethod
-    def quit() -> None:
+    def quit(self) -> None:
         mixer.quit()
 
-
-    @staticmethod
-    def play(sound_name: str) -> None:
-        if sound_name in Sound.sounds:
-            Sound.sounds[sound_name].play()
+    def play(self, sound_name: str) -> None:
+        if sound_name in self.sounds:
+            self.sounds[sound_name].play()
         else:
             print(f"[PLAY] Sound '{sound_name}' not found!")
 
 
-    @staticmethod
-    def stop(sound_name: str) -> None:
-        if sound_name in Sound.sounds:
-            Sound.sounds[sound_name].stop()
+    def stop(self, sound_name: str) -> None:
+        if sound_name in self.sounds:
+            self.sounds[sound_name].stop()
         else:
             print(f"[STOP] Sound '{sound_name}' not found!")

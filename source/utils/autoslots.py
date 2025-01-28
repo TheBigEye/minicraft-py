@@ -24,11 +24,11 @@
 
 import ast
 import inspect
-from typing import Type, TypeVar
+from typing import TypeVar
 
 T = TypeVar('T')
 
-def auto_slots(cls: Type[T]) -> Type[T]:
+def auto_slots(cls: type[T]) -> type[T]:
     """
         Automatically generates `__slots__` for a class by analyzing its `__init__` method.
 

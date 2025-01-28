@@ -5,15 +5,14 @@ from typing import TYPE_CHECKING
 
 from pygame import Surface
 
-from source.particle.smash import SmashParticle
-from source.particle.text import TextParticle
+from source.entity.particle.smash import SmashParticle
+from source.entity.particle.text import TextParticle
 from source.screen.color import Color
-from source.core.sound import Sound
 from source.utils.constants import TILE_HALF_SIZE, TILE_SIZE
-from source.utils.slots import auto_slots
+from source.utils.autoslots import auto_slots
 
 if TYPE_CHECKING:
-    from source.level.world import World
+    from source.world.world import World
 
 
 @auto_slots
@@ -52,7 +51,7 @@ class Tile:
         if self.health > 0:
             self.health -= damage
 
-            Sound.play("genericHurt")
+            #Sound.play("genericHurt")
 
             if self.solid:
                 world.add(SmashParticle(x, y))

@@ -2,11 +2,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from source.level.tiles import Tiles
-
 if TYPE_CHECKING:
-    from source.level.tile import Tile
-    from source.level.world import World
+    from source.world.tile import Tile
+    from source.world.tiles import Tiles
+    from source.world.world import World
 
 
 class Tilemap:
@@ -22,47 +21,52 @@ class Tilemap:
     # neighboring tiles with different IDs create distinct yet visually appealing
     # transitions instead of abrupt changes.
 
-    # Valid terrain connections
-    CONNECTIONS = {
+    def __init__(self, tiles: Tiles):
+        self.tiles = tiles
 
-        Tiles.grass.id: {
-            Tiles.grass.id
-        },
+        self.connections = {}
 
-        Tiles.hole.id: {
-            Tiles.hole.id,
-            Tiles.water.id
-        },
+    def initialize(self) -> None:
+        self.connections = {
+            self.tiles.grass.id: {
+                self.tiles.grass.id,
+                self.tiles.flower.id
+            },
 
-        Tiles.sand.id: {
-            Tiles.sand.id,
-            Tiles.cactus.id,
-        },
+            self.tiles.hole.id: {
+                self.tiles.hole.id,
+                self.tiles.water.id
+            },
 
-        Tiles.snow.id: {
-            Tiles.snow.id,
-        },
+            self.tiles.sand.id: {
+                self.tiles.sand.id,
+                self.tiles.cactus.id,
+            },
 
-        Tiles.water.id: {
-            Tiles.water.id,
-            Tiles.iceberg.id,
-            Tiles.ice.id,
-            Tiles.hole.id
-        },
+            self.tiles.snow.id: {
+                self.tiles.snow.id,
+            },
 
-        Tiles.ice.id: {
-            Tiles.ice.id,
-            Tiles.snow.id,
-            Tiles.dirt.id,
-        },
+            self.tiles.water.id: {
+                self.tiles.water.id,
+                self.tiles.iceberg.id,
+                self.tiles.ice.id,
+                self.tiles.hole.id
+            },
 
-        Tiles.stone.id: {
-            Tiles.stone.id
+            self.tiles.ice.id: {
+                self.tiles.ice.id,
+                self.tiles.snow.id,
+                self.tiles.dirt.id,
+            },
+
+            self.tiles.stone.id: {
+                self.tiles.stone.id
+            }
         }
-    }
 
-    @staticmethod
-    def connector(world: World, tile: Tile, x: int, y: int) -> list:
+
+    def connector(self, world: World, tile: Tile, x: int, y: int) -> list:
         """ Get transition sprites for a tile based on its neighbors """
         transitions = []
 
@@ -70,7 +74,7 @@ class Tilemap:
             return transitions
 
         # Get the set of tiles that connect seamlessly with current tile
-        valid_connections = Tilemap.CONNECTIONS[tile.id]
+        connections = self.connections[tile.id]
 
         # Check cardinal directions first
         directions = [
@@ -90,7 +94,7 @@ class Tilemap:
         for dx, dy, sprite_index in directions:
             neighbor = world.get_tile(x + dx, y + dy)
             # Add transition if neighbor exists and is not in valid connections
-            if neighbor and neighbor.id not in valid_connections:
+            if neighbor and neighbor.id not in connections:
                 transitions.append(tile.sprites[sprite_index])
                 # Mark which sides need transitions
                 if dy == -1:
@@ -113,7 +117,7 @@ class Tilemap:
         for dx, dy, sprite_index, (a, b) in corners:
             if needs_transition[a] and needs_transition[b]:
                 neighbor = world.get_tile(x + dx, y + dy)
-                if neighbor and neighbor.id not in valid_connections:
+                if neighbor and neighbor.id not in connections:
                     transitions.append(tile.sprites[sprite_index])
 
         return transitions

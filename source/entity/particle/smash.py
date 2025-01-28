@@ -1,6 +1,6 @@
 from pygame import Surface, Vector2
 
-from source.particle.particle import Particle
+from source.entity.particle.particle import Particle
 from source.screen.sprites import Sprites
 
 class SmashParticle(Particle):
@@ -19,4 +19,4 @@ class SmashParticle(Particle):
         super().update()
 
     def render(self, screen: Surface) -> None:
-        self.world.surfaces.append((Sprites.SMASH_PARTICLE, (self.rx, self.ry, self.ry + 24)))
+        self.world.surfaces.append((self.sprites.SMASH_PARTICLE, (self.rx, self.ry, self.ry + 24)))

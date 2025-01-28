@@ -1,21 +1,22 @@
 from __future__ import annotations
 
 import heapq
-from enum import Enum
+from enum import IntEnum
 from random import uniform
 from math import hypot, pi, cos, sin
 from typing import TYPE_CHECKING
 
 from pygame import Vector2
-from source.utils.slots import auto_slots
+from source.utils.autoslots import auto_slots
+from source.utils.constants import DIRECTIONS
 
 if TYPE_CHECKING:
-    from source.entity.mob import Mob
-    from source.level.tile import Tile
-    from source.level.world import World
+    from source.entity.mob.mob import Mob
+    from source.world.tile import Tile
+    from source.world.world import World
 
 
-class State(Enum):
+class State(IntEnum):
     IDLE    = 0
     MOVING  = 1
     WAITING = 2
@@ -29,15 +30,9 @@ class Brain:
         self.state: State = State.IDLE # Initially, mob is idle
         self.target_pos: Vector2 = Vector2(0, 0) # No target yet
 
-        self.base_speed = self.mob.speed
+        self.base_speed: float = self.mob.speed
 
         self.path: list[Vector2] = []
-
-        # We use only the first four directions for tile validations ...
-        self.directions = [
-            (0, 1), (1, 0), (0, -1), (-1, 0),
-        ]
-
 
     def update(self, world: World) -> None:
         pass
@@ -50,15 +45,42 @@ class Brain:
             return False
 
         # Only check adjacent tiles
-        for dx, dy in self.directions:
+        for dx, dy in DIRECTIONS:
             check_x = int(x) + dx
             check_y = int(y) + dy
 
             nearby: Tile = world.get_tile(check_x, check_y)
-            if not nearby or nearby.solid or nearby.liquid:
+            if not nearby or nearby.solid:
                 return False
 
         return True
+
+
+    def interpolate(self, path: list[Vector2]) -> list[Vector2]:
+        """Add intermediate points between each tile in the path for smoother movement"""
+        if len(path) < 2:
+            return path
+
+        interpolated: list[Vector2] = []
+
+        for i in range(len(path) - 1):
+            current = path[i]
+            next_point = path[i + 1]
+
+            # Add current point
+            interpolated.append(current)
+
+            # Calculate 3 intermediate points between current and next
+            for t in [0.25, 0.5, 0.75]:
+                intermediate = Vector2(
+                    current.x + (next_point.x - current.x) * t,
+                    current.y + (next_point.y - current.y) * t
+                )
+                interpolated.append(intermediate)
+
+        # Add the final point
+        interpolated.append(path[-1])
+        return interpolated
 
 
     def find_path(self, world: World, start: Vector2, end: Vector2) -> list[Vector2]:
@@ -137,7 +159,62 @@ class Brain:
             path.append(Vector2(current[0], current[1]))
             current = came_from[current]
         path.reverse()
-        return path
+
+        # Add intermediate points for smoother movement
+        return self.interpolate(path)
+
+    def water_between(self, world: World, start: Vector2, end: Vector2) -> bool:
+        """
+        Check if there's water between two points using Bresenham's line algorithm.
+        This algorithm traces a virtual line between start and end points, checking each tile.
+        """
+        # Convert Vector2 coordinates to integers
+        x1, y1 = int(start.x), int(start.y)
+        x2, y2 = int(end.x), int(end.y)
+
+        # Calculate the distance in X and Y between points
+        dx = abs(x2 - x1)
+        dy = abs(y2 - y1)
+        x, y = x1, y1
+
+        # Determine movement direction (1 or -1)
+        sx = 1 if x2 > x1 else -1  # X direction
+        sy = 1 if y2 > y1 else -1  # Y direction
+
+        # If X distance is greater, prioritize horizontal movement
+        if dx > dy:
+            err = dx / 2.0  # Initial error for Bresenham
+            while x != x2:  # Until we reach the end point in X
+                # Check if current tile is water
+                tile = world.get_tile(x, y)
+                if tile and tile.liquid:
+                    return True  # Found water, terminate
+
+                # Update error and Y position if needed
+                err -= dy
+                if err < 0:
+                    y += sy      # Move in Y
+                    err += dx    # Readjust error
+                x += sx  # Always move in X
+
+        # If Y distance is greater, prioritize vertical movement
+        else:
+            err = dy / 2.0  # Initial error for Bresenham
+            while y != y2:  # Until we reach the end point in Y
+                # Check if current tile is water
+                tile = world.get_tile(x, y)
+                if tile and tile.liquid:
+                    return True  # Found water, terminate
+
+                # Update error and X position if needed
+                err -= dx
+                if err < 0:
+                    x += sx      # Move in X
+                    err += dy    # Readjust error
+                y += sy  # Always move in Y
+
+        # If we get here, no water was found in the path
+        return False
 
 
 @auto_slots
@@ -198,12 +275,14 @@ class PassiveBrain(Brain):
             new_x = self.mob.position.x + cos(angle) * dist
             new_y = self.mob.position.y + sin(angle) * dist
 
-            if self.valid_position(world, new_x, new_y):
+            # Check both valid position and no water between points
+            if (self.valid_position(world, new_x, new_y) and
+                not self.water_between(world, self.mob.position, Vector2(new_x, new_y))):
                 self.target_pos = Vector2(new_x, new_y)
                 self.state = State.MOVING
                 return
 
-        # If we can't find a good spot, we’ll just stand still
+        # If we can't find a good spot, we'll just stand still
         self.state = State.IDLE
 
 
@@ -216,8 +295,8 @@ class HostileBrain(Brain):
         # The range (in tiles) within which the mob will start chasing
         self.path_range: float = 4.50
 
-        # Minimal distancia to the player
-        self.target_dist: float = 0.50
+        # Minimal distance to the player
+        self.target_dist: float = 0.40
 
         # How often the mob will update its path (ticks)
         self.update_rate: int = 10
@@ -240,7 +319,9 @@ class HostileBrain(Brain):
             return
 
         # Start chasing if the player is within range and not swimming
-        if player_dist <= self.path_range and not world.player.swimming():
+        if (player_dist <= self.path_range and
+            not world.player.swimming() and
+            not self.water_between(world, self.mob.position, player_pos)):
             self.path_timer += 1
             if self.path_timer >= self.update_rate or not self.path:
                 self.path = self.find_path(world, self.mob.position, player_pos)
@@ -287,7 +368,7 @@ class NeutralBrain(Brain):
         self.path_range: float = 4.50
 
         # Minimal distance to the player
-        self.target_dist: float = 0.50
+        self.target_dist: float = 0.40
 
         # How often the mob will update its path (ticks)
         self.update_rate: int = 10
@@ -339,10 +420,11 @@ class NeutralBrain(Brain):
         # Chase if player is within range and either moving or remembered as moving
         if (player_dist <= self.path_range and
             (target_moving or self.current_memory > 0) and
-            not world.player.swimming()):
+            not world.player.swimming() and
+            not self.water_between(world, self.mob.position, player_pos)):
 
-             # Increase speed while chasing
-            self.mob.speed = self.base_speed * 2.10
+            # Increase speed while chasing
+            self.mob.speed = self.base_speed * 2.00
 
             self.path_timer += 1
             if self.path_timer >= self.update_rate or not self.path:

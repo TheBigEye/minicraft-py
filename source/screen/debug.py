@@ -7,17 +7,18 @@ from pygame.draw import rect
 
 from source.core.game import Game
 from source.screen.color import Color
+
 from source.utils.region import Region
 
 from source.utils.constants import (
     CHUNK_SIZE, RENDER_RANGE_H, RENDER_RANGE_V,
-    SCREEN_HALF_H, SCREEN_HALF_W, TILE_SIZE
+    SCREEN_HALF_H, SCREEN_HALF_W, TILE_SIZE,
+    DIRECTIONS
 )
-
 
 if TYPE_CHECKING:
     from source.core.player import Player
-
+    from source.screen.screen import Screen
 
 class Debug:
     # Cache chunk size in pixels
@@ -25,7 +26,7 @@ class Debug:
     REGION_PIXELS = CHUNK_PIXELS * Region.REGION_SIZE
 
     @staticmethod
-    def grid(screen: Surface, chunks: dict, player: Player) -> None:
+    def grid(screen: Screen, chunks: dict, player: Player) -> None:
 
         cx = player.cx
         cy = player.cy
@@ -37,17 +38,14 @@ class Debug:
         # Create rectangle for the chunk
         chunk_rect = Rect(0, 0, Debug.CHUNK_PIXELS, Debug.CHUNK_PIXELS)
 
-        current_chunk_color = Color.DARK_GRAY
+        current_chunk_color = Color.GREEN
         missing_chunk_color = Color.RED
-        normal_chunk_color = Color.GREEN
+        normal_chunk_color = Color.BLACK
 
         x_start = -(RENDER_RANGE_H + 1)
         x_end = RENDER_RANGE_H + 2
         y_start = -RENDER_RANGE_V
         y_end = RENDER_RANGE_V + 1
-
-        # Neighbor offsets
-        neighbors = [(-1, 0), (1, 0), (0, -1), (0, 1)]
 
         for x in range(x_start, x_end):
             xr = int(x * Debug.CHUNK_PIXELS + xo)
@@ -65,7 +63,7 @@ class Debug:
                     # Also we check if neighbors has been generated
                     neighbors_generated = all(
                         (xc + dx, yc + dy) in chunks
-                        for dx, dy in neighbors
+                        for dx, dy in DIRECTIONS
                     )
                 else:
                     neighbors_generated = True
@@ -80,28 +78,28 @@ class Debug:
                         normal_chunk_color)
 
                 # Draw rectangles
-                rect(screen, color, chunk_rect, 2)
+                rect(screen.buffer, color, chunk_rect, 2)
                 chunk_rect.inflate_ip(-2, -2)
-                rect(screen, color, chunk_rect, 1)
+                rect(screen.buffer, color, chunk_rect, 1)
                 chunk_rect.inflate_ip(2, 2)  # Restore original size
 
                 # Render chunk coordinates
-                text_surface = Game.font.render(
+                text_surface = screen.font.render(
                     f"C: {xc},{yc}",
                     False,
                     Color.WHITE,
                     Color.BLACK
                 ).convert()
-                screen.blit(text_surface, (xr + 2, yr + 2))
+                screen.buffer.blit(text_surface, (xr + 2, yr + 2))
 
                 # And region coordinates
-                text_surface = Game.font.render(
+                text_surface = screen.font.render(
                     f"R: {xc // Region.REGION_SIZE},{yc // Region.REGION_SIZE}",
                     False,
                     Color.WHITE,
                     Color.BLACK
                 ).convert()
-                screen.blit(text_surface, (xr + 2, yr + 18))
+                screen.buffer.blit(text_surface, (xr + 2, yr + 18))
 
         # Draw current region boundary
         rx, ry = cx // Region.REGION_SIZE, cy // Region.REGION_SIZE
@@ -112,6 +110,6 @@ class Debug:
             Debug.REGION_PIXELS
         )
 
-        rect(screen, Color.RED, region_rect, 4)
+        rect(screen.buffer, Color.RED, region_rect, 4)
         region_rect.inflate_ip(-4, -4)
-        rect(screen, Color.DARK_RED, region_rect, 2)
+        rect(screen.buffer, Color.DARK_RED, region_rect, 2)

@@ -8,18 +8,20 @@ from pygame import Surface, Vector2
 from source.core.sound import Sound
 from source.entity.brain import Brain, State
 from source.entity.entity import Entity
-from source.particle.text import TextParticle
+from source.entity.particle.text import TextParticle
 from source.screen.color import Color
-from source.utils.slots import auto_slots
 
 from source.utils.constants import (
     CHUNK_SIZE, POSITION_SHIFT, SCREEN_FULL_H, SCREEN_FULL_W,
     SCREEN_HALF_H, SCREEN_HALF_W, TILE_BITS, TILE_SIZE
 )
 
+from source.utils.autoslots import auto_slots
+
 if TYPE_CHECKING:
-    from source.level.tile import Tile
-    from source.level.world import World
+    from source.world.tile import Tile
+    from source.world.world import World
+
 
 @auto_slots
 class Mob(Entity):
@@ -49,6 +51,8 @@ class Mob(Entity):
         self.max_health: int = 10
         self.health: int = self.max_health
 
+        self.hostile: bool = False
+
         self.last_pos: Vector2 = Vector2(0, 0)
 
         self.brain: Brain = Brain(self)
@@ -56,6 +60,10 @@ class Mob(Entity):
 
     def update(self) -> None:
         self.tick_time += 1
+
+        if self.hostile:
+            if hypot(self.position.x - self.world.player.position.x, self.position.y - self.world.player.position.y) < 0.60:
+                self.world.player.hurt(1, self.facing)
 
         self.last_pos = Vector2(self.position)
 
@@ -134,33 +142,57 @@ class Mob(Entity):
             tile_x = new_x >> POSITION_SHIFT
             tile_y = new_y >> POSITION_SHIFT
 
-            tile = self.world.get_tile(tile_x, tile_y)
+            # Get current tile position
+            current_x = int(self.position.x)
+            current_y = int(self.position.y)
 
+            # For diagonal movement, check both intermediate tiles
+            if current_x != tile_x and current_y != tile_y:
+                # Check horizontal movement
+                tile_h = world.get_tile(tile_x, current_y)
+                if not tile_h or tile_h.solid or (tile_h.liquid and not self.can_swim()):
+                    dx = 0  # Block horizontal movement
+
+                # Check vertical movement
+                tile_v = world.get_tile(current_x, tile_y)
+                if not tile_v or tile_v.solid or (tile_v.liquid and not self.can_swim()):
+                    dy = 0  # Block vertical movement
+
+            # Check final tile
+            tile = world.get_tile(tile_x, tile_y)
+
+            # If the tile doesnt exist ...
             if not tile:
-                return
+                return # We dont move
 
-            if tile.solid:
-                return
+            # If the tile is solid or liquid (and can't swim) ...
+            if tile.solid or (tile.liquid and not self.can_swim()):
+                return # We dont move
 
+            # If has attacked previously ...
+            if (self.hurt_time > 0):
+                return # We dont move
+
+            # Ah, if we swim
             if self.swimming():
                 self.swim_time += 1
+                # Skip this tick, or not
                 if (self.swim_time % 2 == 0):
-                    return
+                    return # We move, but slower
 
-            if (self.hurt_time > 0):
-                return
+            # Now yes, we move (if there's any movement left)
+            if dx != 0 or dy != 0:
+                self.position.x += dx
+                self.position.y += dy
 
-            self.position.x += dx
-            self.position.y += dy
+                self.facing = Vector2(dx, dy).normalize()
 
-            self.facing = Vector2(dx, dy).normalize()
+                # Update chunk position
+                self.cx = tile_x // CHUNK_SIZE
+                self.cy = tile_y // CHUNK_SIZE
 
-            # Update chunk position
-            self.cx = tile_x // CHUNK_SIZE
-            self.cy = tile_y // CHUNK_SIZE
-
-            self.walk_dist += 1
-
+                if (self.tick_time % 6 == 0):
+                    self.walk_dist += 1
 
 
     def render(self, screen: Surface):

@@ -1,8 +1,14 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 import pygame
 from pygame import Surface
 from pygame.draw import line
 
 from source.utils.constants import SCREEN_SIZE_T
+
+if TYPE_CHECKING:
+    from source.screen.screen import Screen
 
 class Shader:
     def __init__(self) -> None:
@@ -16,5 +22,5 @@ class Shader:
         self.filter.set_alpha(96, pygame.RLEACCEL)
 
 
-    def render(self, screen: Surface) -> None:
-        screen.blit(self.filter)
+    def render(self, screen: Screen) -> None:
+        screen.buffer.blit(self.filter)

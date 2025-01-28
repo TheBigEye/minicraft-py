@@ -3,31 +3,34 @@ from pygame import QUIT, display, event, time
 from source.core.game import Game
 from source.core.player import Player
 from source.core.sound import Sound
-from source.core.updater import Updater
-
-from source.level.world import World
-
-from source.screen.color import Color
-from source.screen.hotbar import Hotbar
-from source.screen.shader import Shader
-from source.screen.startmenu import StartMenu
-
+from source.screen.menu.titlemenu import TitleMenu
+from source.screen.screen import Screen
+from source.screen.sprites import Sprites
 from source.utils.constants import GAME_TICKS
-from source.utils.saveload import Saveload
+from source.world.tiles import Tiles
+from source.world.world import World
 
 
 def main() -> None:
-    Game.initialize()
-    Sound.initialize()
 
-    player = Player()
-    world = World(player)
-    updater = Updater(world, player)
+    screen = Screen()
+    sprites = Sprites()
 
-    title = StartMenu(world, Game.font)
-    hotbar = Hotbar(player, Game.font)
-    shader = Shader()
+    game = Game()
+    sound = Sound()
 
+    tiles = Tiles(sprites)
+    player = Player(sprites, game)
+    world = World(sprites, tiles, player)
+
+    game.initialize(
+        sound,
+        screen,
+        sprites,
+        world
+    )
+
+    game.display(TitleMenu())
 
     # You might be wondering, why complicate things with a complex main loop when
     # Pygame makes it so much simpler and faster? The answer is straightforward
@@ -64,11 +67,7 @@ def main() -> None:
             for _ in event.get(QUIT):
                 running = False
 
-            if world.loaded:
-                updater.update()
-                hotbar.update()
-            else:
-                title.update()
+            game.update()
 
             delta -= frame_time
             drawing = True
@@ -76,43 +75,29 @@ def main() -> None:
 
         # SCREEN UPDATE
         if drawing:
-            if Game.debug:
+            if game.debug:
                 render_start = time.get_ticks()
 
-            # Clear the screen improve the performance
-            Game.buffer.fill(Color.BLACK)
-
-            if world.loaded:
-                world.render(Game.buffer)
-                hotbar.render(Game.buffer)
-            else:
-                title.render(Game.buffer)
-
-            shader.render(Game.buffer)
+            game.render()
 
             display.flip()
 
-            if Game.debug:
+            if game.debug:
                 render_time = time.get_ticks() - render_start
 
 
-        clock.tick_busy_loop(GAME_TICKS)
+        clock.tick(GAME_TICKS)
 
 
         # DEBUG ...
-        if Game.debug and (time.get_ticks() - timer) >= 1000:
+        if game.debug and (time.get_ticks() - timer) >= 1000:
             if drawing:
                 print(f"> render time: {render_time} ms")
 
             timer = time.get_ticks()
 
 
-    # This prevents corrupted save files in case the game is closed
-    if world.loaded:
-        Saveload.save(updater, world, player)
-
-    Sound.quit()
-    Game.quit()
+    game.quit()
 
 
 if __name__ == "__main__":

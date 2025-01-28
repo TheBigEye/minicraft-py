@@ -2,7 +2,7 @@ from math import floor
 from random import shuffle
 
 
-class Perlin:
+class Noise:
     """ My simple and fast "perlin noise" implementation :D """
 
     NOISE_SCALE: float = 0.0017 # Less noise scale makes the terain bigger
@@ -29,10 +29,10 @@ class Perlin:
         max_value: float = 0  # Used for normalizing result to 0.0 - 1.0
 
         # Sum the noise contributions for each octave
-        for _ in range(Perlin.NUM_OCTAVES): # Noise Octaves
-            total += Perlin.noise(p, x * frequency, y * frequency) * amplitude
+        for _ in range(Noise.NUM_OCTAVES): # Noise Octaves
+            total += Noise.noise(p, x * frequency, y * frequency) * amplitude
             max_value += amplitude
-            amplitude *= Perlin.PERSISTENCE  # Reduce amplitude for subsequent octaves
+            amplitude *= Noise.PERSISTENCE  # Reduce amplitude for subsequent octaves
             frequency *= 2.1  # Increase frequency for subsequent octaves (lacunarity)
 
         # Normalize the result to be within the range [-1, 1]
@@ -59,10 +59,10 @@ class Perlin:
         max_value: float = 0  # Used for normalizing the result
 
         # Sum the noise contributions for each octave
-        for _ in range(Perlin.NUM_OCTAVES): # Noise Octaves
-            total += Perlin.noise(p, x * frequency, y * frequency) * amplitude
+        for _ in range(Noise.NUM_OCTAVES): # Noise Octaves
+            total += Noise.noise(p, x * frequency, y * frequency) * amplitude
             max_value += amplitude
-            amplitude *= Perlin.PERSISTENCE # Reduce amplitude for subsequent octaves
+            amplitude *= Noise.PERSISTENCE # Reduce amplitude for subsequent octaves
             frequency *= 2.05 # Increase frequency for subsequent octaves (lacunarity)
 
         # Normalize the result to be within the range [-1, 1]
@@ -89,10 +89,10 @@ class Perlin:
         max_value: float = 0  # Used for normalizing the result
 
         # Sum the noise contributions for each octave
-        for _ in range(Perlin.NUM_OCTAVES): # Noise Octaves
-            total += Perlin.noise(p, x * frequency, y * frequency) * amplitude
+        for _ in range(Noise.NUM_OCTAVES): # Noise Octaves
+            total += Noise.noise(p, x * frequency, y * frequency) * amplitude
             max_value += amplitude
-            amplitude *= Perlin.PERSISTENCE # Reduce amplitude for subsequent octaves
+            amplitude *= Noise.PERSISTENCE # Reduce amplitude for subsequent octaves
             frequency *= 2.15  # Increase frequency for subsequent octaves (lacunarity)
 
         # Invert the normalized value and shift it to be within [0, 1]
@@ -122,22 +122,22 @@ class Perlin:
         y -= floor(y)
 
         # Apply fade function to smooth the interpolation
-        u: float = Perlin.fade(x)
-        v: float = Perlin.fade(y)
+        u: float = Noise.fade(x)
+        v: float = Noise.fade(y)
 
         # Calculate the hash values for the four corners of the cell
         A: int = p[X] + Y
         B: int = p[X + 1] + Y
 
         # Perform bilinear interpolation and calculate the gradient contributions
-        n: float = Perlin.lerp(v,
-            Perlin.lerp(u,
-                Perlin.grad(p[A], x, y),
-                Perlin.grad(p[B], x - 1, y)
+        n: float = Noise.lerp(v,
+            Noise.lerp(u,
+                Noise.grad(p[A], x, y),
+                Noise.grad(p[B], x - 1, y)
             ),
-            Perlin.lerp(u,
-                Perlin.grad(p[A + 1], x, y - 1),
-                Perlin.grad(p[B + 1], x - 1, y - 1)
+            Noise.lerp(u,
+                Noise.grad(p[A + 1], x, y - 1),
+                Noise.grad(p[B + 1], x - 1, y - 1)
             )
         )
 

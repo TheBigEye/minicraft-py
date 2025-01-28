@@ -1,6 +1,3 @@
-
-
-
 class Color:
 
     BLACK: tuple      = (  0,   0,   0)

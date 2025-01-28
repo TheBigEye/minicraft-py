@@ -1,71 +1,113 @@
 from __future__ import annotations
 
-import pygame
-from pygame import Surface
-from pygame.font import Font
+from typing import TYPE_CHECKING
 
-from source.utils.constants import SCREEN_SIZE_T
+import pygame
+
+from source.core.updater import Updater
+from source.screen.hotbar import Hotbar
+from source.screen.shader import Shader
+from source.utils.saveload import Saveload
+
+if TYPE_CHECKING:
+    from source.core.sound import Sound
+    from source.screen.menu.menu import Menu
+    from source.screen.screen import Screen
+    from source.world.tiles import Tiles
+    from source.screen.sprites import Sprites
+    from source.world.world import World
+
 
 class Game:
     """ Main game class """
 
-    # Initialize Pygame modules
-    pygame.init()
-    pygame.font.init()
-    pygame.display.init()
+    def __init__(self):
+        self.debug: bool = True
+        self.focus: bool = True
 
-    # Window setup
-    pygame.display.set_mode(SCREEN_SIZE_T, pygame.SRCALPHA, 32).convert_alpha()
-    pygame.display.set_icon(pygame.image.load('./assets/icon.png').convert_alpha())
-    pygame.display.set_caption("Minicraft Potato Edition")
+        self.sound: Sound = None # Sound manager
+        self.screen: Screen = None
+        self.sprites: Sprites = None
+        self.menu: Menu = None
+        self.world: World = None # World manager
 
-    # Display setup
-    buffer = pygame.display.get_surface() # get_surface is a pointer to the main window surface, is FASTER!
-    overlay: Surface = pygame.Surface((200, 200), pygame.SRCALPHA, 32).convert_alpha()
-    darkness: Surface = pygame.Surface(buffer.get_size(), pygame.SRCALPHA, 32).convert_alpha()
+        self.updater: Updater = None
+        self.hotbar: Hotbar = None
+        self.shader: Shader = None
 
-    # Event filtering
-    pygame.event.set_allowed([pygame.QUIT, pygame.KEYDOWN, pygame.TEXTINPUT])
+        self.tick_time: int = 0
+        self.game_time: int = 0
 
-    font: Font = pygame.font.Font("./assets/fonts/IBM_VGA.ttf", 16) # Used for game texts
-    chars: Font = pygame.font.Font("./assets/fonts/IBM_BIOS.ttf", 8) # Used for game particles
-    debug: bool = False
 
-    # TODO: move initialize method to Screen class
 
-    @staticmethod
-    def initialize() -> None:
+    def initialize(self, sound: Sound, screen: Screen, sprites: Sprites, world: World) -> None:
         """ Initialize game resources """
 
-        ### lIGHT AND DARK OVERLAY ###
-        Game.overlay.fill((255, 255, 255, 0))
-        Game.darkness.fill((0, 0, 0, 255))
+        self.sound = sound
+        self.screen = screen
+        self.sprites = sprites
+        self.world = world
 
-        # Dithering pattern
-        dither = [
-            [0,  8,  2, 10],
-            [12, 4, 14,  6],
-            [3, 11,  1,  9],
-            [15, 7, 13,  5],
-        ]
+        self.sound.initialize()
+        self.screen.initialize()
+        self.sprites.initialize()
 
-        for y in range(200):
-            dy = y - 100
-            yy = dy * dy  # (y - 100)^2
+        pygame.event.set_blocked(None)
+        pygame.event.set_allowed([pygame.QUIT, pygame.KEYDOWN, pygame.TEXTINPUT])
 
-            for x in range(200):
-                dx = x - 100
-                xx = dx * dx  # (x - 100)^2
+        self.updater = Updater(self)
+        self.hotbar = Hotbar(self.sprites, self.world.player)
 
-                distance = xx + yy
-                if distance < 10000:  # 100^2
-                    alpha = max(0, 255 - (distance * 0.0255) - (dither[y % 4][x % 4] * 13))
-                    Game.overlay.set_at((x, y), (0, 0, 0, int(alpha)))
+        self.shader = Shader()
 
 
-    @staticmethod
-    def quit() -> None:
+    def display(self, menu: Menu) -> None:
+        if menu:
+            self.menu = menu
+            if self.menu:
+                self.menu.initialize(self)
+        else:
+            self.menu = None
+
+
+    def update(self) -> None:
+        self.tick_time += 1
+
+        if not pygame.key.get_focused():
+            return
+
+        if self.menu:
+            self.menu.update()
+            return
+
+        if (self.world.loaded):
+            self.updater.update()
+            self.hotbar.update()
+
+
+    def render(self) -> None:
+        self.screen.buffer.fill(0)
+
+        if self.menu:
+            self.menu.render(self.screen)
+
+        if self.world.loaded:
+            self.world.render(self.screen)
+            self.hotbar.render(self.screen)
+
+        # NOTE: for some reason, render the shader drops FPS!
+        self.shader.render(self.screen)
+
+
+    def quit(self) -> None:
         """ Quit the game """
+
+        # This prevents corrupted save files in case the game is closed
+        if self.world.loaded:
+            Saveload.save(self.updater)
+
+        self.sound.quit()
+
         pygame.display.quit()
         pygame.font.quit()
         pygame.quit()

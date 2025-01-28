@@ -1,12 +1,14 @@
 import random
 
 import pygame
-from pygame import Surface, Vector2
+from pygame import Vector2
 
-from source.core.game import Game
-from source.particle.particle import Particle
+from source.entity.particle.particle import Particle
 from source.screen.color import Color
-from source.utils.slots import auto_slots
+from source.screen.screen import Screen
+from source.screen.sprites import Sprites
+from source.utils.autoslots import auto_slots
+
 
 @auto_slots
 class TextParticle(Particle):
@@ -25,11 +27,7 @@ class TextParticle(Particle):
         self.ya: float = random.gauss() * 0.02
         self.za: float = random.uniform(0, 1) * 0.7 + 2
 
-        self.text = Game.chars.render(self.message, False, self.color).convert_alpha()
-        self.back = Game.chars.render(self.message, False, Color.BLACK).convert_alpha()
-
-        self.text = pygame.transform.scale(self.text, (16, 16))
-        self.back = pygame.transform.scale(self.back, (16, 16))
+        self.text_width = len(self.message) * 16
 
 
     def update(self):
@@ -59,11 +57,20 @@ class TextParticle(Particle):
         # For rendering position update
         super().update()
 
-        self.rx = self.rx - (len(self.message) * 4)
-        self.ry = self.ry - int(self.zz)
+        # Adjust text position based on actual width
+        self.rx -= self.text_width // 2
+        self.ry -= int(self.zz)
 
 
-    def render(self, screen: Surface) -> None:
+    def render(self, screen: Screen) -> None:
+        # Render text first
+        self.text = screen.chars.render(self.message, False, self.color).convert()
+        self.back = screen.chars.render(self.message, False, Color.BLACK).convert()
+
+        # Scale maintaining aspect ratio for width, fixed height
+        self.text = pygame.transform.scale(self.text, (self.text_width, 16))
+        self.back = pygame.transform.scale(self.back, (self.text_width, 16))
+
         self.world.surfaces.extend([
             (self.back, (self.rx + 2, self.ry + 2, self.ry + 24)),
             (self.text, (self.rx, self.ry, self.ry + 24))
