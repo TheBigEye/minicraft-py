@@ -2,7 +2,7 @@
 
 > **Note:** This project is currently in active development; the code is still in progress. 🙃
 
-A demake of the classic Minicraft, originally created by **Markus Persson** (Notch) in Java for the **Ludum Dare 22 competition**. This project is developed in Python using `pygame-ce` (Pygame Community Edition).
+A remake of the classic Minicraft, originally created by **Markus Persson** (Notch) in Java for the **Ludum Dare 22 competition**. This project is developed in Python using `pygame-ce` (Pygame Community Edition).
 
 ## Current Features
 - **Infinite terrain generation** based on chunks
