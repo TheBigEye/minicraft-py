@@ -36,7 +36,7 @@ class Tile:
             # Or a normal tile model
             elif len(self.sprites) >= 9:
                 # Get available base sprites (first one and any after index 8)
-                base_sprites = [self.sprites[0]] + self.sprites[9:]
+                base_sprites = [self.sprites[0]] + self.sprites[9:11]
                 # Randomly select one of the base variations
                 self.sprite = choice(base_sprites)
 

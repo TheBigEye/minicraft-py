@@ -28,8 +28,6 @@ class Screen:
         self.overlay: Surface = pygame.Surface((200, 200), pygame.SRCALPHA, 32).convert_alpha()
         self.darkness: Surface = pygame.Surface(self.buffer.get_size(), pygame.SRCALPHA, 32).convert_alpha()
 
-
-
         self.font: Font = pygame.font.Font("./assets/fonts/IBM_VGA.ttf", 16) # Used for game texts
         self.chars: Font = pygame.font.Font("assets/fonts/IBM_BIOS.ttf", 8) # Used for game particles
 

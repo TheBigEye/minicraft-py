@@ -13,7 +13,6 @@ if TYPE_CHECKING:
     from source.core.sound import Sound
     from source.screen.menu.menu import Menu
     from source.screen.screen import Screen
-    from source.world.tiles import Tiles
     from source.screen.sprites import Sprites
     from source.world.world import World
 
@@ -40,24 +39,15 @@ class Game:
 
 
 
-    def initialize(self, sound: Sound, screen: Screen, sprites: Sprites, world: World) -> None:
-        """ Initialize game resources """
-
-        self.sound = sound
+    def initialize(self, screen: Screen, sprites: Sprites, sound: Sound, world: World) -> None:
+        """Initialize game with required dependencies"""
         self.screen = screen
         self.sprites = sprites
+        self.sound = sound
         self.world = world
-
-        self.sound.initialize()
-        self.screen.initialize()
-        self.sprites.initialize()
-
-        pygame.event.set_blocked(None)
-        pygame.event.set_allowed([pygame.QUIT, pygame.KEYDOWN, pygame.TEXTINPUT])
 
         self.updater = Updater(self)
         self.hotbar = Hotbar(self.sprites, self.world.player)
-
         self.shader = Shader()
 
 

@@ -8,14 +8,11 @@ from typing import TYPE_CHECKING
 
 from pygame import Vector2
 
-from source.core.sound import Sound
 from source.entity.entities import Entities
 from source.utils.region import Region
 
 if TYPE_CHECKING:
-    from source.core.player import Player
     from source.core.updater import Updater
-    from source.world.world import World
 
 
 class Saveload:

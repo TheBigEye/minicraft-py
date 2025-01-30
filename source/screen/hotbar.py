@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from pygame import Font, Surface
-
 from source.screen.color import Color
 from source.screen.screen import Screen
 from source.utils.constants import SCREEN_HALF_W, SCREEN_FULL_H
@@ -52,7 +50,7 @@ class Hotbar:
 
     def update(self) -> None:
         self.px = f"F: ({self.player.facing.x:.0f}, {self.player.facing.y:.0f}), T: {self.player.world.ticks}"
-        self.py = f"X: {self.player.position.y:.2f}, Y: {self.player.position.x:.2f}"
+        self.py = f"X: {self.player.position.x:.2f}, Y: {self.player.position.y:.2f}"
 
         self.px_pos = ((self.HOTBAR_LENGTH * 8) - 32 - (len(self.px) * 8), self.HEARTS_HEIGHT)
         self.py_pos = ((self.HOTBAR_LENGTH * 8) - 32 - (len(self.py) * 8), self.STAMINA_HEIGHT)

@@ -79,13 +79,19 @@ class Tilemap:
         # Check cardinal directions first
         directions = [
             ( 0, -1, 1),  # Top
-            (-1,  0, 2),  # Left
-            ( 1,  0, 3),  # Right
+            ( 1,  0, 2),  # Right
+            (-1,  0, 3),  # Left
             ( 0,  1, 4)   # Bottom
         ]
 
-        # Store which sides need transitions
+        # Store which sides have different tiles
         needs_transition = {
+            'top': False, 'bottom': False,
+            'left': False, 'right': False
+        }
+
+        # Store which sides have same tile type
+        has_same_type = {
             'top': False, 'bottom': False,
             'left': False, 'right': False
         }
@@ -94,19 +100,22 @@ class Tilemap:
         for dx, dy, sprite_index in directions:
             neighbor = world.get_tile(x + dx, y + dy)
             # Add transition if neighbor exists and is not in valid connections
-            if neighbor and neighbor.id not in connections:
-                transitions.append(tile.sprites[sprite_index])
-                # Mark which sides need transitions
-                if dy == -1:
-                    needs_transition['top'] = True
-                elif dy == 1:
-                    needs_transition['bottom'] = True
-                elif dx == -1:
-                    needs_transition['left'] = True
-                elif dx == 1:
-                    needs_transition['right'] = True
+            if neighbor:
+                if neighbor.id not in connections:
+                    transitions.append(tile.sprites[sprite_index])
+                    # Mark which sides need transitions
+                    if dy == -1: needs_transition['top'] = True
+                    elif dy == 1: needs_transition['bottom'] = True
+                    elif dx == -1: needs_transition['left'] = True
+                    elif dx == 1: needs_transition['right'] = True
+                else:
+                    # Mark which sides have same type
+                    if dy == -1: has_same_type['top'] = True
+                    elif dy == 1: has_same_type['bottom'] = True
+                    elif dx == -1: has_same_type['left'] = True
+                    elif dx == 1: has_same_type['right'] = True
 
-        # Check corners only if adjacent sides need transitions
+        # Check outer corners only if adjacent sides need transitions
         corners = [
             (-1, -1, 5, ('left', 'top')),     # Top-left
             ( 1, -1, 6, ('right', 'top')),    # Top-right
@@ -114,10 +123,25 @@ class Tilemap:
             ( 1,  1, 8, ('right', 'bottom'))  # Bottom-right
         ]
 
-        for dx, dy, sprite_index, (a, b) in corners:
-            if needs_transition[a] and needs_transition[b]:
+        for dx, dy, sprite_index, (side1, side2) in corners:
+            if needs_transition[side1] and needs_transition[side2]:
                 neighbor = world.get_tile(x + dx, y + dy)
                 if neighbor and neighbor.id not in connections:
                     transitions.append(tile.sprites[sprite_index])
+
+        # Only process inner corners if we have enough sprites (14 or more)
+        if len(tile.sprites) >= 14:
+            inner_corners = [
+                ( 1,  1, 11, ('right', 'bottom')), # Bottom-right inner
+                (-1,  1, 12, ('left', 'bottom')),  # Bottom-left inner
+                ( 1, -1, 13, ('right', 'top')),    # Top-right inner
+                (-1, -1, 14, ('left', 'top'))      # Top-left inner
+            ]
+
+            for dx, dy, sprite_index, (side1, side2) in inner_corners:
+                if has_same_type[side1] and has_same_type[side2]:
+                    neighbor = world.get_tile(x + dx, y + dy)
+                    if neighbor and neighbor.id not in connections:
+                        transitions.append(tile.sprites[sprite_index])
 
         return transitions

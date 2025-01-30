@@ -2,10 +2,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from pygame import Rect, Surface
+from pygame import Rect
 from pygame.draw import rect
 
-from source.core.game import Game
 from source.screen.color import Color
 
 from source.utils.region import Region

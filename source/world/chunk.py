@@ -82,19 +82,16 @@ class Chunk:
         for yt in range(CHUNK_SIZE):
             row = self.tiles[yt]
             wy = chunk_base_y + yt * TILE_SIZE
+            world_y = self.y * CHUNK_SIZE + yt
             if not Chunk.RENDER_BOUNDS[1] <= wy <= Chunk.RENDER_BOUNDS[3]:
                 continue
 
             for xt in range(CHUNK_SIZE):
                 tile = row[xt]
                 wx = chunk_base_x + xt * TILE_SIZE
+                world_x = self.x * CHUNK_SIZE + xt
                 if not Chunk.RENDER_BOUNDS[0] <= wx <= Chunk.RENDER_BOUNDS[2]:
                     continue
 
-                # Update tile connectors if needed
-                if not tile.solid or tile.id == world.tiles.stone.id:
-                    world_x = self.x * CHUNK_SIZE + xt
-                    world_y = self.y * CHUNK_SIZE + yt
-                    tile.connectors = world.tilemap.connector(world, tile, world_x, world_y)
-
+                tile.connectors = world.tilemap.connector(world, tile, world_x, world_y)
                 tile.render(world, wx, wy)

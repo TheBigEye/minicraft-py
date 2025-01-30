@@ -5,7 +5,8 @@ from source.utils.constants import TILE_SIZE
 class Sprites:
 
     def __init__(self):
-        self.atlas = pygame.image.load('assets/atlas.png').convert_alpha()
+        self.atlas = pygame.image.load('assets/atlas.png').convert()
+        self.atlas.set_colorkey((255, 0, 255))
 
 
     def get(self, x: int, y: int, step: int, scale: int) -> pygame.Surface:
@@ -169,6 +170,14 @@ class Sprites:
             self.get(20, 0, 16, TILE_SIZE), # Top-right corner
             self.get(18, 2, 16, TILE_SIZE),  # Bottom-left corner
             self.get(20, 2, 16, TILE_SIZE), # Bottom-right corner
+
+            self.get(20, 3, 16, TILE_SIZE), # Base water
+            self.get(20, 4, 16, TILE_SIZE), # Base water
+
+            self.get(18, 3, 16, TILE_SIZE), # Base water
+            self.get(19, 3, 16, TILE_SIZE), # Base water
+            self.get(18, 4, 16, TILE_SIZE), # Base water
+            self.get(19, 4, 16, TILE_SIZE), # Base water
         ]
 
         self.DIRT = [

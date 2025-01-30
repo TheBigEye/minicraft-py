@@ -44,11 +44,14 @@ class TitleMenu(Menu):
         super().initialize(game)
 
         pygame.mixer.music.load('./assets/sounds/titleTheme.ogg')
+        pygame.mixer.music.set_volume(0.32)
         pygame.mixer.music.play(-1, fade_ms=10000)
 
         self.title: Surface = pygame.transform.scale(
-            pygame.image.load('assets/title.png').convert_alpha(), (104 * 4.4, 16 * 4.4)
+            pygame.image.load('assets/title.png').convert(), (104 * 4.4, 16 * 4.4)
         )
+
+        self.title.set_colorkey((255, 0, 255))
 
         # Background image scaled by 2x
         self.back: Surface = pygame.transform.scale(
@@ -59,11 +62,11 @@ class TitleMenu(Menu):
         edition_text = "════════════════ Potato Edition ════════════════"
 
         # Shadow text
-        shadow = game.screen.font.render(edition_text, False, (27, 45, 32)).convert_alpha()
+        shadow = game.screen.font.render(edition_text, False, (27, 45, 32)).convert()
         shadow_rect = shadow.get_rect(center=(SCREEN_HALF_W + 1, SCREEN_HALF_H - 59))
 
         # Main text
-        text = game.screen.font.render(edition_text, False, (137, 229, 160)).convert_alpha()
+        text = game.screen.font.render(edition_text, False, (137, 229, 160)).convert()
         text_rect = text.get_rect(center=(SCREEN_HALF_W, SCREEN_HALF_H - 60))
 
         # Add both to the texts list
