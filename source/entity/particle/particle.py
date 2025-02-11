@@ -1,5 +1,6 @@
 from source.entity.entity import Entity
-from source.utils.constants import SCREEN_HALF_H, SCREEN_HALF_W, TILE_SIZE
+from source.screen.screen import Screen
+from source.utils.constants import SCREEN_HALF, TILE_SIZE
 
 class Particle(Entity):
 
@@ -15,6 +16,11 @@ class Particle(Entity):
 
         self.tick_time: int = 0
 
+
     def update(self) -> None:
-        self.rx = int(SCREEN_HALF_W - ((self.world.player.position.x - self.position.x) * TILE_SIZE))
-        self.ry = int(SCREEN_HALF_H - ((self.world.player.position.y - self.position.y) * TILE_SIZE))
+        self.rx = int(SCREEN_HALF[0] - ((self.world.player.position.x - self.position.x) * TILE_SIZE))
+        self.ry = int(SCREEN_HALF[1] - ((self.world.player.position.y - self.position.y) * TILE_SIZE))
+
+
+    def render(self, screen: Screen) -> None:
+        pass

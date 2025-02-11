@@ -1,0 +1,62 @@
+{
+    "name": "My Custom Mod",
+    "version": "1.0.0",
+    "description": "A custom mod example",
+
+    "custom_tilemap": {
+
+        "#0000FF": {
+            "name": "deep_water",
+            "id": 0,
+            "sprites": [
+                [16, 1],
+
+                [16, 0],
+                [17, 1],
+                [15, 1],
+                [16, 2],
+
+                [15, 0],
+                [17, 0],
+                [15, 2],
+                [17, 2],
+
+                [16, 1],
+                [16, 1],
+
+                [8, 5],
+                [9, 5],
+                [8, 6],
+                [9, 6]
+            ]
+        },
+
+        "#69CC00": {
+            "name": "hard_grass",
+            "id": 4,
+            "health": -1
+        },
+
+        "#565656": {
+            "name": "hard_rock",
+            "id": 9,
+            "health": -1
+        },
+
+        "#C40000": {
+            "name": "hakurei_shrine",
+            "id": 128,
+            "liquid": false,
+            "solid": false,
+            "health": -1,
+            "parent": 1,
+            "sprites": [
+                [832, 0, 192, 192, 12]
+            ]
+        }
+    },
+
+    "custom_player": {
+        "spawn": [106.50, 100.50]
+    }
+}

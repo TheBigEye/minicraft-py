@@ -21,6 +21,7 @@ class Sound:
         # Load all sounds into the dictionary
         for key, file_path in sound_files.items():
             self.sounds[key] = mixer.Sound(file_path)
+            self.sounds[key].set_volume(0.25)
 
 
     def quit(self) -> None:

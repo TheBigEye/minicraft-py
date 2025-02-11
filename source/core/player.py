@@ -11,8 +11,7 @@ from source.entity.furniture.furniture import Furniture
 from source.entity.particle.text import TextParticle
 
 from source.utils.constants import (
-    CHUNK_SIZE, SCREEN_HALF_H,
-    SCREEN_HALF_W, TILE_SIZE,
+    TILE_SIZE, CHUNK_SIZE, SCREEN_HALF,
     POSITION_SHIFT, TILE_BITS
 )
 
@@ -69,7 +68,7 @@ class Player:
         self.KNOCKBACK: float = 0.35
 
 
-    def initialize(self, world: World, sx: float, sy: float) -> None:
+    def initialize(self, world: World, spawn: Vector2) -> None:
 
         self.sprite = self.sprites.PLAYER[1][0]
         self.speed: float = 0.064
@@ -77,7 +76,7 @@ class Player:
 
         self.tiles = self.world.tiles
 
-        self.position = Vector2(sx, sy)
+        self.position = spawn
 
         self.cx = int(self.position.x) // CHUNK_SIZE
         self.cy = int(self.position.y) // CHUNK_SIZE
@@ -199,8 +198,8 @@ class Player:
             tile_y = self.yd - int(self.position.y)
 
             highlight = Vector2(
-                (SCREEN_HALF_W + (tile_x * TILE_SIZE)),
-                (SCREEN_HALF_H + (tile_y * TILE_SIZE))
+                (SCREEN_HALF[0] + (tile_x * TILE_SIZE)),
+                (SCREEN_HALF[1] + (tile_y * TILE_SIZE))
             )
 
             # Adjust for tile offset
@@ -209,17 +208,8 @@ class Player:
 
             sprites.append((self.sprites.HIGHLIGHT, (highlight.x, highlight.y, highlight.y + 8)))
 
-        screen.darkness.set_alpha(255 - self.world.daylight())
-
-        screen.darkness.blit(
-            screen.overlay,
-            ((SCREEN_HALF_W - 96), (SCREEN_HALF_H - 92) - 16),
-            special_flags=pygame.BLEND_RGBA_SUB
-        )
-
-
-        rx = SCREEN_HALF_W - 15
-        ry = SCREEN_HALF_H - 15
+        rx = SCREEN_HALF[0] - 15
+        ry = SCREEN_HALF[1] - 15
 
         # Player rendering
         if self.swimming():
@@ -251,7 +241,7 @@ class Player:
         if (ticks % 4 == 0):
 
             tile: Tile = self.world.get_tile(self.xd, self.yd)
-            if tile and tile.solid:
+            if tile and (tile.solid or tile.health < 0):
                 self.cursor = False
             else:
                 self.cursor = not self.cursor

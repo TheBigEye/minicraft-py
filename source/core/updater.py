@@ -5,10 +5,8 @@ from typing import TYPE_CHECKING
 import pygame
 from pygame import Vector2
 
-
 from source.utils.saveload import Saveload
 from source.utils.tests import Tests
-
 
 if TYPE_CHECKING:
     from source.core.game import Game
@@ -23,9 +21,6 @@ class Updater:
 
         # Used for player sprite
         self.timer: int = 0
-
-        # Used for game independent events
-        self.count: int = 0
 
         # Used for game timing events
         self.ticks: int = 3000
@@ -51,14 +46,6 @@ class Updater:
 
 
     def update(self) -> None:
-        self.count += 1
-
-        # Check window focus
-        #if not pygame.key.get_focused():
-        #    Game.focus = False
-        #    return
-        #else:
-        #    Game.focus = True
 
         # Autosave
         if self.world.loaded and (self.ticks % 1024) == 0:
@@ -104,9 +91,11 @@ class Updater:
 
         # Handle attack (press-release check)
         if event[pygame.K_c]:
+            now = pygame.time.get_ticks() / 1000
+
             if not self.held_attack and self._cooldown(self.last_attack, self.ATTACK_TIME):
                 self.player.attack()
-                self.last_attack = pygame.time.get_ticks() / 1000
+                self.last_attack = now
             self.held_attack = True
         else:
             self.held_attack = False
@@ -117,7 +106,7 @@ class Updater:
             now = pygame.time.get_ticks() / 1000
 
             if self._cooldown(self.last_shift, self.SHIFT_TIME):
-                self.world.debug = not self.world.debug
+                self.game.debug = not self.game.debug
                 self.last_shift = now
 
 

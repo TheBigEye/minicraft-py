@@ -8,21 +8,19 @@ import pygame
 
 from source.entity.entities import Entities
 
-from source.screen.debug import Debug
 from source.screen.tilemap import Tilemap
 from source.utils.region import Region
 from source.world.chunk import Chunk
 from source.world.generator import Generator
 from source.world.noise import Noise
 
-
 from source.utils.constants import (
-    TILE_SIZE, SCREEN_HALF_H, SCREEN_HALF_W,
-    CHUNK_SIZE, RENDER_RANGE_H, RENDER_RANGE_V,
-    DIRECTIONS
+    TILE_SIZE, CHUNK_SIZE, RENDER_SIZE,
+    SCREEN_HALF, DIRECTIONS
 )
 
 if TYPE_CHECKING:
+    from source.core.game import Game
     from source.world.tiles import Tiles
     from source.core.player import Player
     from source.entity.entity import Entity
@@ -32,25 +30,30 @@ if TYPE_CHECKING:
 
 
 class World:
-    def __init__(self, sprites: Sprites, tiles: Tiles, player: Player) -> None:
-        self.seed = None  # Seed for terrain generation
-        self.perm: list = []  # Permutation matrix for noise generation
 
-        # Storage for terrain and chunks
+    def __init__(self, game: Game, sprites: Sprites, tiles: Tiles, player: Player) -> None:
+        # Seed for terrain generation
+        self.seed = None
+        self.game = game
+
+        self.is_custom = False
+
+        # Permutation matrix for noise generation
+        self.perm: list = []
+
+        # Storage for entities and chunks
         self.chunks: dict = {}
         self.entities: list[Entity] = []
 
         self.ticks: int = 0
 
         # Spawn point
-        self.sx: float = 0.00
-        self.sy: float = 0.00
+        self.spawn = Vector2(0.16, 0.16)
 
         self.player: Player = player
         self.tiles: Tiles = tiles
         self.sprites: Sprites = sprites
         self.loaded: bool = False
-        self.debug: bool = False
 
         self.generator = Generator(tiles)
         self.tilemap = Tilemap(tiles)
@@ -58,33 +61,39 @@ class World:
         self.surfaces = []
 
 
-    def initialize(self, worldseed, do_populate: bool) -> None:
+    def initialize(self, worldseed, populate: bool) -> None:
+        """ Initialize the world with a seed and optionally populate it with entities """
+
         if worldseed == "":
-            worldseed = str(
-                (pygame.time.get_ticks() * randint(-(2**31), 2**31)) // 2
-            )
+            worldseed = (pygame.time.get_ticks() * randint(-(2**31), 2**31)) // 2
 
         self.seed = worldseed
         seed(self.seed)
 
         self.perm = Noise.permutation()
 
-        xp = 0 // CHUNK_SIZE
-        yp = 0 // CHUNK_SIZE
-
         self.tiles.initialize()
         self.generator.initialize()
         self.tilemap.initialize()
 
-        # We generate the spawn chunks
-        for cx in range((xp - 6), (xp + 6)):
-            for cy in range((yp - 6), (yp + 6)):
-                self.load_chunk(cx, cy)
+        # Find spawn point before generating chunks
+        if self.game.custom.custom_world:
+            self.is_custom = True
+            self.game.custom.load_tiles(self.game)
+            self.spawn = self.game.custom.player_spawn
+        else:
+            self.spawn = self.generator.find_spawn(self.perm)
 
-        self.player.initialize(self, self.sx, self.sy)
+
+        # Calculate spawn chunk coordinates
+        cx = int(self.spawn.x) // CHUNK_SIZE
+        cy = int(self.spawn.y) // CHUNK_SIZE
+        self.load_chunk(cx, cy)
+
+        self.player.initialize(self, self.spawn)
 
         # Spawn initial mobs
-        if do_populate:
+        if populate:
             self.populate()
 
         self.loaded = True
@@ -93,6 +102,12 @@ class World:
     def load_chunk(self, cx: int, cy: int) -> None:
         """Load or generate a chunk at the given coordinates."""
         if (cx, cy) in self.chunks:
+            return
+
+        if self.is_custom:
+            if chunk := self.game.custom.get_chunk(cx, cy):
+                self.chunks[(cx, cy)] = chunk
+                return
             return
 
         # Try to load from region file first
@@ -116,8 +131,8 @@ class World:
         # Generate new chunk
         chunk_tiles = self.generator.make_chunk(cx, cy, self.perm)
 
-        # Optionally set a spawn point in World initialization
-        if self.sx == 0 and self.sy == 0:
+        # Set a spawn point
+        if self.spawn.x == 0 and self.spawn.y == 0:
             for h in range(CHUNK_SIZE):
                 for w in range(CHUNK_SIZE):
                     tile = chunk_tiles[h][w]
@@ -125,11 +140,11 @@ class World:
                     world_y = cy * CHUNK_SIZE + h
 
                     if not tile.solid and not tile.liquid:
-                        self.sx = world_x
-                        self.sy = world_y
+                        self.spawn.x = world_x
+                        self.spawn.y = world_y
                         break
 
-                if self.sx != 0:
+                if self.spawn.x != 0:
                     break
 
         self.chunks[(cx, cy)] = Chunk(cx, cy, chunk_tiles)
@@ -139,53 +154,55 @@ class World:
         """ Save and unload chunks that are too far from the center """
 
         for (cx, cy) in list(self.chunks.keys()):
-            if (abs(cx - center_x) > RENDER_RANGE_H + 2 or
-                abs(cy - center_y) > RENDER_RANGE_V + 2):
+            if (abs(cx - center_x) > RENDER_SIZE[0] + 2 or
+                abs(cy - center_y) > RENDER_SIZE[1] + 2):
 
                 chunk: Chunk = self.chunks[(cx, cy)]
 
-                # Save modified chunks before unloading
-                if chunk.modified:
-                    rx, ry, lcx, lcy = Region.get_region(cx, cy)
-                    region = Region('./saves', rx, ry)
+                if self.is_custom:
+                    if chunk.modified:
+                        self.game.custom.save_chunk(chunk)
+                else:
+                    # Save modified chunks before unloading
+                    if chunk.modified:
+                        rx, ry, lcx, lcy = Region.get_region(cx, cy)
+                        save_dir = './mods/saves' if self.game.custom.enabled else './saves'
+                        region = Region(save_dir, rx, ry)
 
-                    chunk_data = {
-                        'tiles': chunk.data()
-                    }
+                        chunk_data = {
+                            'tiles': chunk.data()
+                        }
 
-                    region.write_chunk(lcx, lcy, chunk_data)
+                        region.write_chunk(lcx, lcy, chunk_data)
 
                 del self.chunks[(cx, cy)]
 
 
-    def get_tile(self, x: int, y: int) -> Tile:
-        """ Get the tile at coordinates in the world  """
+    def get_tile(self, x: int, y: int) -> (Tile | None):
+        """ Get a tile at coordinates in the world  """
         if chunk := self.chunks.get((x // CHUNK_SIZE, y // CHUNK_SIZE)):
             return chunk.get(x % CHUNK_SIZE, y % CHUNK_SIZE)
         return None
 
 
-    def set_tile(self, x: int, y: int, tile: int | Tile) -> None:
-        """ Update the world map with the replacement tile """
+    def set_tile(self, x: int, y: int, tile: int) -> None:
+        """ Set a tile at coordinates in the world """
+        # Get chunk coordinates
+        cx = x // CHUNK_SIZE
+        cy = y // CHUNK_SIZE
 
-        # Calculate the chunk coordinates
-        coords = (x // CHUNK_SIZE, y // CHUNK_SIZE)
+        # Load chunk if needed
+        self.load_chunk(cx, cy)
 
-        # Load the chunk at the calculated chunk coordinates
-        self.load_chunk(*coords)
+        # Convert tile ID to Tile object if needed
+        tile = self.tiles.get(tile).clone()
 
-        # Determine the correct Tile object
-        if isinstance(tile, int):
-            tile = self.tiles.get(tile).clone()
-        else:
-            tile = tile.clone()
+        # Get local coordinates within chunk
+        lx = x % CHUNK_SIZE
+        ly = y % CHUNK_SIZE
 
-        # Set the tile in the terrain
-        self.chunks[coords].set(
-            x % CHUNK_SIZE,
-            y % CHUNK_SIZE,
-            tile
-        )
+        # Update the tile in chunk
+        self.chunks[(cx, cy)].set(lx, ly, tile)
 
 
     def add(self, entity: Entity) -> None:
@@ -195,19 +212,21 @@ class World:
 
 
     def daylight(self) -> int:
+        """ Get the world light value """
+
         # Dawn: 0-6000 ticks
         # Day: 6000-32000 ticks
         # Dusk: 32000-36000 ticks
         # Night: 36000-48000 ticks
 
         if self.ticks < 6000:
-            return 16 + (self.ticks * 239 // 6000)
+            return 24 + (self.ticks * 231 // 6000)
         elif self.ticks < 32000:
             return 255
         elif self.ticks < 36000:
-            return 255 - ((self.ticks - 32000) * 239 // 4000)
+            return 255 - ((self.ticks - 32000) * 231 // 4000)
         else:
-            return 16
+            return 24
 
 
     def render(self, screen: Screen) -> None:
@@ -226,13 +245,13 @@ class World:
         # exception, typically having a Z value minor to -8.
 
         # Pre-calculate camera position
-        camera_x = int(SCREEN_HALF_W - (self.player.position.x * TILE_SIZE))
-        camera_y = int(SCREEN_HALF_H - (self.player.position.y * TILE_SIZE))
+        camera_x = int(SCREEN_HALF[0] - (self.player.position.x * TILE_SIZE))
+        camera_y = int(SCREEN_HALF[1] - (self.player.position.y * TILE_SIZE))
 
         # Calculate visible chunk range
         chunk_range = (
-            range(self.player.cx - RENDER_RANGE_H - 1, self.player.cx + RENDER_RANGE_H + 2),
-            range(self.player.cy - RENDER_RANGE_V - 1, self.player.cy + RENDER_RANGE_V + 2)
+            range(self.player.cx - RENDER_SIZE[0] - 1, self.player.cx + RENDER_SIZE[0] + 2),
+            range(self.player.cy - RENDER_SIZE[1] - 1, self.player.cy + RENDER_SIZE[1] + 2)
         )
 
         # Render visible chunks
@@ -250,15 +269,11 @@ class World:
         self.surfaces.extend(self.player.render(screen))
 
         # Sort and render sprite buffers!
-        self.surfaces.sort(key=lambda x: x[1][2])
+        self.surfaces.sort(key = lambda x: x[1][2])
         screen.buffer.fblits([(sprite, (pos[0], pos[1])) for sprite, pos in self.surfaces])
 
         # Also render the light dither
-        # DISABLED UTIL THAT I FIX IT
-        screen.buffer.blit(screen.darkness)
-
-        if self.debug:
-            Debug.grid(screen, self.chunks, self.player)
+        screen.update_light(self.daylight())
 
 
     def update(self, ticks) -> None:
@@ -361,8 +376,8 @@ class World:
 
         for _ in range(6):  # Try spawn 6 random mobs
             # Pick random coordinates near spawn
-            x = self.sx + randint(-12, 12)
-            y = self.sy + randint(-12, 12)
+            x = self.spawn.x + randint(-12, 12)
+            y = self.spawn.y + randint(-12, 12)
 
             # Check if spawn location is valid (not in water/solid blocks)
             tile: Tile = self.get_tile(int(x), int(y))

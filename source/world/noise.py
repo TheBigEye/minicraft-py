@@ -1,3 +1,4 @@
+import math as meth
 from math import floor
 from random import shuffle
 
@@ -156,7 +157,7 @@ class Noise:
                 float: The smoothed value
         """
 
-        return t * t * t * (t * (t * 6 - 15) + 10)
+        return t * t * t * (t * (t * 6.0 - 15.0) + 10.0)
 
 
     @staticmethod
@@ -190,8 +191,8 @@ class Noise:
                 float: The dot product of the gradient and the distance vector
         """
 
-        h = h & 15  # Take the last 4 bits of the hash
-        grad = 1 + (h & 7)  # Calculate the gradient direction
+        h = h & 15 # Take the last 4 bits of the hash
+        grad = 1.0 + (h & 7) # Calculate the gradient direction (from 1.0 - 8.0)
 
         # If the 4th bit is set, negate the gradient
         if h & 8:

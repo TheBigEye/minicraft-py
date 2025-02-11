@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from pygame import Surface
+
 from source.world.tile import Tile
 
 if TYPE_CHECKING:
@@ -23,14 +25,14 @@ class Tiles:
         self.grass =         Tile(4,  self.sprites.GRASS,      False, False,  2,  1)
         self.flower =        Tile(5,  self.sprites.FLOWERS,    False, False,  4,  1)
         self.oak_tree =      Tile(6,  self.sprites.OAK_TREE,   True,  False,  2, 16)
-        self.birch_tree =    Tile(7,  self.sprites.BIRCH_TREE, True,  False,  2, 24)
-        self.pine_tree =     Tile(8,  self.sprites.PINE_TREE,  True,  False,  2, 32)
-        self.stone =         Tile(9,  self.sprites.STONE,      True,  False,  2, 32)
+        self.birch_tree =    Tile(7,  self.sprites.BIRCH_TREE, True,  False,  2, 18)
+        self.pine_tree =     Tile(8,  self.sprites.PINE_TREE,  True,  False,  2, 24)
+        self.stone =         Tile(9,  self.sprites.STONE,      True,  False,  2, 24)
         self.ice =           Tile(10, self.sprites.ICE,        False, False,  0,  4)
         self.snow =          Tile(11, self.sprites.SNOW,       False, False,  2,  1)
         self.iceberg =       Tile(12, self.sprites.ICEBERG,    True,  False,  0,  8)
         self.cactus =        Tile(13, self.sprites.CACTUS,     True,  False,  1,  8)
-
+        self.iron_ore =      Tile(14, self.sprites.IRON_ORE,   True,  False,  2, 26)
 
     def get(self, identifier: int) -> Tile:
         """ Get tile instance by ID """

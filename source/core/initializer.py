@@ -1,19 +1,19 @@
 from __future__ import annotations
 
 import pygame
-from pygame import QUIT, display, event, time
-
+from pygame import KEYDOWN, QUIT, TEXTINPUT, display, event, time
 
 from source.core.game import Game
 from source.core.player import Player
 from source.core.sound import Sound
+from source.custom.custom import Custom
 from source.screen.menu.titlemenu import TitleMenu
 from source.screen.screen import Screen
 from source.screen.sprites import Sprites
+from source.utils.constants import GAME_TICKS
 from source.world.tiles import Tiles
 from source.world.world import World
 
-from source.utils.constants import GAME_TICKS
 
 class Initializer:
 
@@ -29,35 +29,37 @@ class Initializer:
     def initialize(self) -> None:
         """ Initialize all game systems """
 
+        # We make the game object
+        self.game = Game()
+
         # Core systems first
         self.screen = Screen()
         self.sprites = Sprites()
         self.sound = Sound()
 
         # Initialize core resources
-        self.screen.initialize()
         self.sprites.initialize()
         self.sound.initialize()
 
-        # Game state objects
-        self.game = Game()
+        # Initialize the screen
+        self.screen.initialize(self.sprites)
+
+        # Setup game objects
         tiles = Tiles(self.sprites)
         player = Player(self.sprites, self.game)
-        self.world = World(self.sprites, tiles, player)
+        self.world = World(self.game, self.sprites, tiles, player)
+
+        # Mods subsystem
+        self.custom = Custom(self.sprites, tiles)
 
         # Initialize game
-        self.game.initialize(
-            # We need their dependencies :)
-            screen=self.screen,
-            sprites=self.sprites,
-            sound=self.sound,
-            world=self.world
-        )
+        self.game.initialize(self)
 
         # Set initial game state
-        self.game.display(TitleMenu())
+        self.game.set_menu(TitleMenu())
+
         pygame.event.set_blocked(None)
-        pygame.event.set_allowed([QUIT, pygame.KEYDOWN, pygame.TEXTINPUT])
+        pygame.event.set_allowed([QUIT, KEYDOWN, TEXTINPUT])
 
 
     def run(self) -> None:

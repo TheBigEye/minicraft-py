@@ -12,8 +12,7 @@ from source.screen.menu.menu import Menu
 from source.screen.menu.seedmenu import SeedMenu
 
 from source.utils.constants import (
-    SCREEN_FULL_H, SCREEN_FULL_W,
-    SCREEN_HALF_H, SCREEN_HALF_W
+    SCREEN_SIZE, SCREEN_HALF
 )
 
 from source.utils.saveload import Saveload
@@ -26,18 +25,20 @@ if TYPE_CHECKING:
 class TitleMenu(Menu):
 
     def __init__(self):
+
+        self.texts = []
+        self.buffer = []
+
         self.selected = 0
+        self.selection = 0
+
         self.OPTIONS = [
             "Start game",   # 0
             "How to play",  # 1
             "About"         # 2
         ]
 
-        self.texts = []
-        self.buffer = []
-
-        self.selection = 0
-        self.COOLDOWN = 120  # milliseconds
+        self.COOLDOWN = 120
 
 
     def initialize(self, game: Game) -> None:
@@ -45,41 +46,39 @@ class TitleMenu(Menu):
 
         pygame.mixer.music.load('./assets/sounds/titleTheme.ogg')
         pygame.mixer.music.set_volume(0.32)
-        pygame.mixer.music.play(-1, fade_ms=10000)
+        pygame.mixer.music.play(-1, fade_ms=8000)
 
-        self.title: Surface = pygame.transform.scale(
-            pygame.image.load('assets/title.png').convert(), (104 * 4.4, 16 * 4.4)
-        )
+        self.title: Surface = pygame.image.load('assets/title.png').convert()
+        self.title: Surface = pygame.transform.scale(self.title, (self.title.get_width() * 4.4, self.title.get_height() * 4.4))
 
+        # Make the title tranparent
         self.title.set_colorkey((255, 0, 255))
 
-        # Background image scaled by 2x
-        self.back: Surface = pygame.transform.scale(
-            pygame.image.load('assets/back.png').convert(), (384 * 2.5, 216 * 2.5)
-        )
+        # Background image
+        self.back: Surface = pygame.image.load('assets/back.png').convert()
 
         # Edition Text with shadow
-        edition_text = "════════════════ Potato Edition ════════════════"
+        edition_text = "═══════════════[ Potato Edition ]═══════════════"
 
         # Shadow text
         shadow = game.screen.font.render(edition_text, False, (27, 45, 32)).convert()
-        shadow_rect = shadow.get_rect(center=(SCREEN_HALF_W + 1, SCREEN_HALF_H - 59))
+        shadow_rect = shadow.get_rect(center=(SCREEN_HALF[0] + 1, SCREEN_HALF[1] - 59))
 
         # Main text
         text = game.screen.font.render(edition_text, False, (137, 229, 160)).convert()
-        text_rect = text.get_rect(center=(SCREEN_HALF_W, SCREEN_HALF_H - 60))
+        text_rect = text.get_rect(center=(SCREEN_HALF[0], SCREEN_HALF[1] - 60))
 
         # Add both to the texts list
         self.texts.extend([(shadow, shadow_rect), (text, text_rect)])
 
         # Author text
         author_text = game.screen.font.render("Game by TheBigEye", False, Color.GRAY).convert()
-        author_rect = author_text.get_rect(bottomleft=(4, SCREEN_FULL_H))
+        author_rect = author_text.get_rect(bottomleft = (4, SCREEN_SIZE[1]))
         self.texts.append((author_text, author_rect))
 
         # Version text
         version_text = game.screen.font.render("Infdev 1.0a", False, Color.GRAY).convert()
-        version_rect = version_text.get_rect(bottomright=(SCREEN_FULL_W - 4, SCREEN_FULL_H))
+        version_rect = version_text.get_rect(bottomright = (SCREEN_SIZE[0] - 4, SCREEN_SIZE[1]))
         self.texts.append((version_text, version_rect))
 
 
@@ -108,16 +107,16 @@ class TitleMenu(Menu):
                 try:
                     Saveload.load(self.game.updater)
                     self.game.sound.play("eventSound")
-                    self.game.display(None)
+                    self.game.set_menu(None)
 
                 except FileNotFoundError:
                     self.game.world.loaded = False
-                    self.game.display(SeedMenu(self))
+                    self.game.set_menu(SeedMenu(self))
 
             elif self.selected == 1:
-                self.game.display(GuideMenu(self))
+                self.game.set_menu(GuideMenu(self))
             elif self.selected == 2:
-                self.game.display(AboutMenu(self))
+                self.game.set_menu(AboutMenu(self))
 
             self.game.sound.play("confirmSound")
 
@@ -125,25 +124,24 @@ class TitleMenu(Menu):
     def render(self, screen: Screen) -> None:
         self.buffer.clear()
 
-        self.buffer.append((self.back, self.back.get_rect(center = (SCREEN_HALF_W, 270))))
-        self.buffer.append((self.title, self.title.get_rect(center = (SCREEN_HALF_W, 160))))
+        self.buffer.append((self.back, self.back.get_rect(center = SCREEN_HALF)))
+        self.buffer.append((self.title, self.title.get_rect(center = (SCREEN_HALF[0], 160))))
 
-        self.buffer.extend(screen.draw_box(self.game.sprites, 24, 16, 12, 5))
+        self.buffer.extend(screen.draw_box(24, 16, 12, 5))
 
-        for i in range(len(self.OPTIONS)):
-            msg = self.OPTIONS[i]
-            col = (128, 128, 128)
+        for i, msg in enumerate(self.OPTIONS):
+            col = Color.GRAY
 
             if i == self.selected:
                 msg = "> " + msg + " <"
-                col = (255, 255, 255)
+                col = Color.WHITE
 
-            shadow = screen.font.render(msg, False, (0, 0, 0)).convert()
-            shadow_rect = shadow.get_rect(center=(SCREEN_HALF_W + 1, 280 + i * 16))
+            shadow = screen.font.render(msg, False, Color.BLACK).convert()
+            shadow_rect = shadow.get_rect(center = (SCREEN_HALF[0] + 1, 280 + i * 16))
             self.buffer.append((shadow, shadow_rect))
 
             text = screen.font.render(msg, False, col, None).convert()
-            text_rect = text.get_rect(center=(SCREEN_HALF_W, 280 + i * 16))
+            text_rect = text.get_rect(center = (SCREEN_HALF[0], 280 + i * 16))
 
             self.buffer.append((text, text_rect))
 

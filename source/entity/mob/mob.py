@@ -12,7 +12,7 @@ from source.entity.particle.text import TextParticle
 from source.screen.color import Color
 
 from source.utils.constants import (
-    CHUNK_SIZE, POSITION_SHIFT, SCREEN_FULL_H, SCREEN_FULL_W,
+    CHUNK_SIZE, POSITION_SHIFT, SCREEN_HEIGHT, SCREEN_WIDTH,
     SCREEN_HALF_H, SCREEN_HALF_W, TILE_BITS, TILE_SIZE
 )
 
@@ -197,5 +197,5 @@ class Mob(Entity):
 
     def render(self, screen: Surface):
         # For avoid append the sprites to the rendering queue
-        if not (-TILE_SIZE <= self.rx <= SCREEN_FULL_W and -TILE_SIZE <= self.ry <= SCREEN_FULL_H):
+        if not (-TILE_SIZE <= self.rx <= SCREEN_WIDTH and -TILE_SIZE <= self.ry <= SCREEN_HEIGHT):
             return

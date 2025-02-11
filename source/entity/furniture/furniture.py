@@ -7,8 +7,8 @@ from pygame import Surface, Vector2
 from source.entity.entity import Entity
 
 from source.utils.constants import (
-    CHUNK_SIZE, POSITION_SHIFT, SCREEN_FULL_H,
-    SCREEN_FULL_W, SCREEN_HALF_H, SCREEN_HALF_W,
+    CHUNK_SIZE, POSITION_SHIFT, SCREEN_HEIGHT,
+    SCREEN_WIDTH, SCREEN_HALF_H, SCREEN_HALF_W,
     TILE_BITS, TILE_SIZE
 )
 
@@ -31,8 +31,8 @@ class Furniture(Entity):
         self.push_time: int = 0
         self.push_dir: Vector2 = Vector2(0, 0)
 
-        self.position.x = 0.8
-        self.position.y = 0.8
+        self.position.x = 0.80
+        self.position.y = 0.80
 
         self.speed = 0.080
 
@@ -128,5 +128,5 @@ class Furniture(Entity):
 
 
     def render(self, screen: Surface):
-        if not (-TILE_SIZE <= self.rx <= SCREEN_FULL_W and -TILE_SIZE <= self.ry <= SCREEN_FULL_H):
+        if not (-TILE_SIZE <= self.rx <= SCREEN_WIDTH and -TILE_SIZE <= self.ry <= SCREEN_HEIGHT):
             return

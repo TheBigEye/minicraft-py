@@ -20,17 +20,20 @@ class Saveload:
     @staticmethod
     def save(updater: Updater) -> None:
         """ Save the game state including mobs """
-        os.makedirs('./saves', exist_ok=True)
-
         world = updater.world
         player = updater.player
+        custom = updater.game.custom
+
+        # Determine save directory based on custom mode
+        save_dir = './mods/saves' if custom.custom_world else './saves'
+        os.makedirs(save_dir, exist_ok=True)
 
         # Prepare data for saving
         data = {
             'header': {
                 'seed': world.seed,
                 'perm': world.perm,
-                'spawn': (world.sx, world.sy),
+                'spawn': world.spawn,
                 'ticks': updater.ticks
             },
 
@@ -51,21 +54,20 @@ class Saveload:
         }
 
         # Save world metadata and player to level.dat
-        with open('./saves/level.dat', 'wb') as level:
+        with open(f'{save_dir}/level.dat', 'wb') as level:
             level.write(b'MCPY')  # Magic number for security
             level.write(pickletools.optimize(pickle.dumps(data, protocol=5)))
 
         # Save entities to separate file
         entities_data = [entity.data() for entity in world.entities]
-
-        with open('./saves/entities.dat', 'wb') as entities:
+        with open(f'{save_dir}/entities.dat', 'wb') as entities:
             entities.write(pickletools.optimize(pickle.dumps(entities_data, protocol=5)))
 
         # Save modified chunks to their region files
         for (cx, cy), chunk in world.chunks.items():
             if chunk.modified:
                 rx, ry, lcx, lcy = Region.get_region(cx, cy)
-                region = Region('./saves', rx, ry)
+                region = Region(save_dir, rx, ry)
 
                 data = {
                     'tiles': chunk.data()
@@ -78,11 +80,14 @@ class Saveload:
     @staticmethod
     def load(updater: Updater): # type: (Updater) -> None
         """ Load the game state """
-
         world = updater.world
         player = updater.player
+        custom = updater.game.custom
 
-        with open('./saves/level.dat', 'rb') as level:
+        # Determine save directory based on custom mode
+        save_dir = './mods/saves' if custom.custom_world else './saves'
+
+        with open(f'{save_dir}/level.dat', 'rb') as level:
             # Verify magic number
             if level.read(4) != b'MCPY':
                 raise ValueError("Invalid save file format")
@@ -94,7 +99,7 @@ class Saveload:
             header = data['header']
             world.seed = header['seed']
             world.perm = header['perm']
-            world.sx, world.sy = header['spawn']
+            world.spawn = header['spawn']
             updater.ticks = header['ticks']
 
             # Load player data
@@ -115,11 +120,11 @@ class Saveload:
             player.energy = player_data['energy']
 
             world.initialize(world.seed, False)
-            player.initialize(world, float(player_data['x']), float(player_data['y']))
+            player.initialize(world, Vector2(float(player_data['x']), float(player_data['y'])))
 
         # Load entities
         try:
-            with open('./saves/entities.dat', 'rb') as entities_file:
+            with open(f'{save_dir}/entities.dat', 'rb') as entities_file:
                 entities = pickle.load(entities_file)
                 world.entities.clear()
 
@@ -139,7 +144,9 @@ class Saveload:
                     world.add(entity)
 
         except FileNotFoundError:
-            # Handle case where entities file doesn't exist
-            world.populate()
+            # If we not are running a custom world ...
+            if not custom.custom_world:
+                # Handle case where entities file doesn't exist
+                world.populate()
 
         world.loaded = True

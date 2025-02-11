@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from random import random
 from typing import TYPE_CHECKING
+from pygame import Vector2  # Add Vector2 import
 
 from source.world.noise import Noise
 from source.world.chunk import Chunk
@@ -107,13 +108,13 @@ class Generator:
             return self.tiles.sand.clone()
 
         # Main terrain
-        elif elevation < 1.75:
+        elif elevation < 1.60:
             # Cold regions
             if temp < 0.25:
                 return self.tiles.snow.clone()
 
             # Cool/Temperate regions
-            if temp < 0.70:
+            if temp < 0.60:
                 if random() < 0.090:
                     return self.tiles.flower.clone()
                 return self.tiles.grass.clone()
@@ -125,23 +126,55 @@ class Generator:
 
         # Mountains
         else:
-            if elevation < 1.95:
+
+            # TODO: redo this later with fractal noise
+
+            # Generate exterior wall
+            if elevation < 1.75:
                 return self.tiles.stone.clone()
 
+            # Generate caves walls
+            if (humidity / 4.70) < 0.30:
+                return self.tiles.stone.clone()
+
+            # Generate first dirt ring
+            if elevation < 1.90:
+                return self.tiles.dirt.clone()
+
+            # Stone wall
+            if elevation < 2.03:
+                return self.tiles.stone.clone()
+
+            # Another dirt ring
+            if elevation < 2.10:
+                return self.tiles.dirt.clone()
+
+            # Generate interior caves walls
+            if (temp / (humidity / 4.00)) < 0.04:
+                return self.tiles.stone.clone()
+
+            if elevation < 2.24:
+                return self.tiles.stone.clone()
+
+            # Another ring
+            if elevation < 2.30:
+                return self.tiles.dirt.clone()
+
             return self.tiles.dirt.clone()
+
 
 
     def get_tree(self, temp: float, humidity: float, elevation: float):
         """ Determine tree type based on terrain parameters """
 
-        if elevation < 1.75:
+        if elevation < 1.60:
             # Cold regions
             if temp < 0.25:
                 if humidity > 0.40 and elevation > 0.75:
                     return self.tiles.pine_tree
 
             # Cool/Temperate regions
-            elif temp < 0.70:
+            elif temp < 0.60:
                 if humidity > 0.40 and elevation > 0.50:
                     return self.tiles.oak_tree
 
@@ -163,6 +196,46 @@ class Generator:
 
         for check_y in range(h - 1, h + 2):
             for check_x in range(w - 1, w + 2):
-                if chunk_tiles[check_y][check_x] and chunk_tiles[check_y][check_x].id in self.trees:
+                # Check if the tile exist fisrt ... then if are tree tiles or stone tiles close
+                if chunk_tiles[check_y][check_x] and (chunk_tiles[check_y][check_x].id in self.trees or chunk_tiles[check_y][check_x].id == self.tiles.stone.id):
                     return False
         return True
+
+
+    def find_spawn(self, perm: list) -> Vector2:
+        """ Find a valid spawn point by sampling points in a spiral pattern """
+
+        width = 0
+        steps = 0
+
+        # Start at origin and spiral outward
+        pos = Vector2(0.16, 0.16)  # Position vector
+        dir = Vector2(1.00, 0.00)  # Direction vector
+
+        # Sample points in a spiral pattern until valid spawn found
+        for _ in range(1024):  # Limit search radius
+            # Check current point
+            tx = pos.x * Noise.NOISE_SCALE
+            ty = pos.y * Noise.NOISE_SCALE
+
+            elevation = Noise.heightmap(perm, tx, ty)
+            temp = Noise.temperature(perm, tx, ty)
+
+            # Check if point is suitable for spawn (not water/mountain)
+            if 0.50 < elevation < 1.65 and temp > 0.40:
+                return pos
+
+            # Move to next point in spiral
+            pos += dir
+            steps += 1
+
+            if steps == width:
+                steps = 0
+                # Change direction (rotate 90 degrees)
+                dir.x, dir.y = -dir.y, dir.x
+                # Increase spiral size every 2 direction changes
+                if dir.x == 0:
+                    width += 1
+
+        # Fallback to origin if no good point found
+        return Vector2(0.16, 0.16)

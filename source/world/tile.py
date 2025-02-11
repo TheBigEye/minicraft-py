@@ -8,7 +8,7 @@ from pygame import Surface
 from source.entity.particle.smash import SmashParticle
 from source.entity.particle.text import TextParticle
 from source.screen.color import Color
-from source.utils.constants import TILE_HALF_SIZE, TILE_SIZE
+from source.utils.constants import TILE_HALF, TILE_SIZE
 from source.utils.autoslots import auto_slots
 
 if TYPE_CHECKING:
@@ -51,7 +51,7 @@ class Tile:
         if self.health > 0:
             self.health -= damage
 
-            #Sound.play("genericHurt")
+            world.game.sound.play("genericHurt")
 
             if self.solid:
                 world.add(SmashParticle(x, y))
@@ -62,16 +62,30 @@ class Tile:
 
 
     def render(self, world: World, x: int, y: int) -> None:
+        """
+        Renderiza el tile de forma que la parte inferior del sprite se alinee con la
+        posición (x, y). Para sprites grandes (por ejemplo, árboles), se usa un
+        anclaje de tipo “bottom center”.
+        """
+        # Si el sprite es mayor que el tamaño base del tile, se asume que es un sprite grande.
+        if self.sprite.get_width() > TILE_SIZE:
+            sprite_width = self.sprite.get_width()
+            sprite_height = self.sprite.get_height()
+            # Se centra horizontalmente: se toma el centro del tile (x + TILE_HALF)
+            # y se le resta la mitad del ancho del sprite.
+            draw_x = (x + TILE_HALF) - (sprite_width / 2)
+            # Se alinea verticalmente para que la parte inferior del sprite coincida con y.
+            draw_y = y - (sprite_height - TILE_SIZE) + 4
+            # El tercer valor (por ejemplo, y+2) es el z-index para el orden de dibujo.
+            world.surfaces.append((self.sprite, (draw_x, draw_y, y - 4)))
+            return
 
-        # Normal tiles
-        if self.id not in {6, 7, 8}:  # Tree IDs
-            world.surfaces.append((self.sprite, (x, y, -24)))
-            # Add transitions to the appropriate buffer
-            for sprite in self.connectors:
-                world.surfaces.append((sprite, (x, y, -24)))
-        else:
-            # Trees use the Z axis for depth rendering :)
-            world.surfaces.append((self.sprite, (((x - TILE_SIZE) + TILE_HALF_SIZE), y - 24, y + 2)))
+        # Para sprites que no son “grandes” se puede mantener el comportamiento original.
+        # Si lo deseas, también podrías ajustar su alineación para que queden "pegados al suelo":
+        world.surfaces.append((self.sprite, (x, y, -24)))
+        # Se agregan los conectores (por ejemplo, para transiciones) sin modificar su posición.
+        for sprite in self.connectors:
+            world.surfaces.append((sprite, (x, y, -24)))
 
 
     def clone(self) -> Tile:

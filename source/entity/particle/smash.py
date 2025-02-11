@@ -1,7 +1,7 @@
-from pygame import Surface, Vector2
+from pygame import Vector2
 
 from source.entity.particle.particle import Particle
-from source.screen.sprites import Sprites
+from source.screen.screen import Screen
 
 class SmashParticle(Particle):
 
@@ -9,6 +9,7 @@ class SmashParticle(Particle):
         super().__init__()
 
         self.position = Vector2(x, y)
+
 
     def update(self) -> None:
         self.tick_time += 1
@@ -18,5 +19,6 @@ class SmashParticle(Particle):
 
         super().update()
 
-    def render(self, screen: Surface) -> None:
+
+    def render(self, screen: Screen) -> None:
         self.world.surfaces.append((self.sprites.SMASH_PARTICLE, (self.rx, self.ry, self.ry + 24)))

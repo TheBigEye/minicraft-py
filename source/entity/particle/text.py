@@ -6,7 +6,6 @@ from pygame import Vector2
 from source.entity.particle.particle import Particle
 from source.screen.color import Color
 from source.screen.screen import Screen
-from source.screen.sprites import Sprites
 from source.utils.autoslots import auto_slots
 
 
@@ -36,8 +35,6 @@ class TextParticle(Particle):
         if (self.tick_time > 60):
             self.remove()
 
-        # Python is a *bit* slower than java ...
-        # so we need multiply these ...
         self.xx += self.xa * 1.1
         self.yy += self.ya * 1.1
         self.zz += self.za * 2

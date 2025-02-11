@@ -6,7 +6,7 @@ class Color:
     DARK_CYAN: tuple  = (  0, 126, 126)
     DARK_RED: tuple   = (126,   0,   0)
     PURPLE: tuple     = (126,   0, 126)
-    GOLD: tuple       = (192, 126,   0)
+    BROWN: tuple      = (192, 126,   0)
     GRAY: tuple       = (126, 126, 126)
 
     DARK_GRAY: tuple  = ( 63,  63,  63)
@@ -15,5 +15,5 @@ class Color:
     CYAN: tuple       = ( 63, 189, 189)
     RED: tuple        = (189,  63,  63)
     MAGENTA: tuple    = (189,  63, 189)
-    YELLOW: tuple     = (189, 189,  63)
+    YELLOW: tuple     = (252, 252,  0)
     WHITE: tuple      = (189, 189, 189)

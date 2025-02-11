@@ -26,6 +26,30 @@ class Tilemap:
 
         self.connections = {}
 
+        self.DIRECTIONS = {
+            # X,  Y, Sprite index
+            ( 0, -1, 1),  # Top
+            ( 1,  0, 2),  # Right
+            (-1,  0, 3),  # Left
+            ( 0,  1, 4)   # Bottom
+        }
+
+        self.OUTER_CORNERS = {
+            # X,  Y, Sprite index
+            (-1, -1, 5, ('left', 'top')),     # Top-left
+            ( 1, -1, 6, ('right', 'top')),    # Top-right
+            (-1,  1, 7, ('left', 'bottom')),  # Bottom-left
+            ( 1,  1, 8, ('right', 'bottom'))  # Bottom-right
+        }
+
+        self.INNER_CORNERS = {
+            ( 1,  1, 11, ('right', 'bottom')), # Bottom-right inner
+            (-1,  1, 12, ('left', 'bottom')),  # Bottom-left inner
+            ( 1, -1, 13, ('right', 'top')),    # Top-right inner
+            (-1, -1, 14, ('left', 'top'))      # Top-left inner
+        }
+
+
     def initialize(self) -> None:
         self.connections = {
             self.tiles.grass.id: {
@@ -65,6 +89,7 @@ class Tilemap:
             }
         }
 
+    # TODO: implement cache for this ... we can reduce the call overheat caching progresivelly each connector sprite
 
     def connector(self, world: World, tile: Tile, x: int, y: int) -> list:
         """ Get transition sprites for a tile based on its neighbors """
@@ -75,14 +100,6 @@ class Tilemap:
 
         # Get the set of tiles that connect seamlessly with current tile
         connections = self.connections[tile.id]
-
-        # Check cardinal directions first
-        directions = [
-            ( 0, -1, 1),  # Top
-            ( 1,  0, 2),  # Right
-            (-1,  0, 3),  # Left
-            ( 0,  1, 4)   # Bottom
-        ]
 
         # Store which sides have different tiles
         needs_transition = {
@@ -97,7 +114,7 @@ class Tilemap:
         }
 
         # Check sides first
-        for dx, dy, sprite_index in directions:
+        for dx, dy, sprite_index in self.DIRECTIONS:
             neighbor = world.get_tile(x + dx, y + dy)
             # Add transition if neighbor exists and is not in valid connections
             if neighbor:
@@ -115,30 +132,16 @@ class Tilemap:
                     elif dx == -1: has_same_type['left'] = True
                     elif dx == 1: has_same_type['right'] = True
 
-        # Check outer corners only if adjacent sides need transitions
-        corners = [
-            (-1, -1, 5, ('left', 'top')),     # Top-left
-            ( 1, -1, 6, ('right', 'top')),    # Top-right
-            (-1,  1, 7, ('left', 'bottom')),  # Bottom-left
-            ( 1,  1, 8, ('right', 'bottom'))  # Bottom-right
-        ]
-
-        for dx, dy, sprite_index, (side1, side2) in corners:
+        # Check outer corners if adjacent sides need transitions
+        for dx, dy, sprite_index, (side1, side2) in self.OUTER_CORNERS:
             if needs_transition[side1] and needs_transition[side2]:
                 neighbor = world.get_tile(x + dx, y + dy)
                 if neighbor and neighbor.id not in connections:
                     transitions.append(tile.sprites[sprite_index])
 
-        # Only process inner corners if we have enough sprites (14 or more)
+        # Process inner corners if we have enough sprites (14 or more)
         if len(tile.sprites) >= 14:
-            inner_corners = [
-                ( 1,  1, 11, ('right', 'bottom')), # Bottom-right inner
-                (-1,  1, 12, ('left', 'bottom')),  # Bottom-left inner
-                ( 1, -1, 13, ('right', 'top')),    # Top-right inner
-                (-1, -1, 14, ('left', 'top'))      # Top-left inner
-            ]
-
-            for dx, dy, sprite_index, (side1, side2) in inner_corners:
+            for dx, dy, sprite_index, (side1, side2) in self.INNER_CORNERS:
                 if has_same_type[side1] and has_same_type[side2]:
                     neighbor = world.get_tile(x + dx, y + dy)
                     if neighbor and neighbor.id not in connections:
